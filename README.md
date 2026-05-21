@@ -18,7 +18,25 @@ The image builds the full site from source inside Docker: content collections, m
 
 Access logs are structured JSON on stdout (`docker compose logs -f caddy`). Edge rate limiting is enabled (default 30 requests per 30s per host locally; see `docker-compose.override.yml`).
 
-### Production VM
+### Production VM (Azure or any Linux server)
+
+**Prerequisites:** static public IP, NSG/firewall allows TCP 80 and 443, DNS **A record** for your domain → that IP.
+
+**Deploy (one command on the VM):**
+
+```bash
+sudo bash -c 'git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website && /opt/personal-website/deploy/bootstrap.sh vmattoo.dev'
+```
+
+**Teardown (one command):**
+
+```bash
+sudo /opt/personal-website/deploy/teardown.sh
+```
+
+See [deploy/README.md](deploy/README.md) for two-command flow, private repos, and re-deploy.
+
+Manual compose (without bootstrap):
 
 ```bash
 SITE_DOMAIN=vmattoo.dev docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build

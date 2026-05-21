@@ -10,7 +10,9 @@ COPY site/package.json site/package.json
 
 RUN npm ci --omit=dev
 
+ARG PUBLIC_SITE_NAME=vmattoo.dev
 COPY .env.example .env
+RUN sed -i "s/^PUBLIC_SITE_NAME=.*/PUBLIC_SITE_NAME=${PUBLIC_SITE_NAME}/" .env
 COPY site site
 
 RUN npm run build -w site
