@@ -12,3 +12,7 @@ shows up on [/notes](/notes) automatically — no routing or config edits.
 
 Longer writing, drafts, and anything that does not fit the papers or projects
 lists yet. Keep one topic per file.
+
+# Here is some additional testing stuff
+
+Seeing if search catches the word "Apache Kafka is extremely irritating."
