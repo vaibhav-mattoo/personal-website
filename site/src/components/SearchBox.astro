@@ -1,0 +1,74 @@
+---
+import '@pagefind/default-ui/css/ui.css';
+---
+
+<div id="pagefind-search" class="search-box"></div>
+
+<script>
+	import { PagefindUI } from '@pagefind/default-ui';
+
+	new PagefindUI({
+		element: '#pagefind-search',
+		showSubResults: true,
+		resetStyles: false,
+	});
+</script>
+
+<style>
+	.search-box {
+		--pagefind-ui-primary: var(--accent);
+		--pagefind-ui-text: var(--fg);
+		--pagefind-ui-background: var(--bg);
+		--pagefind-ui-border: var(--border);
+		--pagefind-ui-tag: var(--accent-soft);
+		--pagefind-ui-border-radius: var(--radius);
+		--pagefind-ui-font: var(--font-body);
+	}
+
+	/*
+	 * Pagefind puts the clear button and results drawer inside the same <form>.
+	 * Position:absolute is relative to that form, so vertical centering (top: 50%)
+	 * anchors to the full form height and the X drops into the results when they open.
+	 * Keep Pagefind's top offset so the button stays aligned with the search input only.
+	 */
+	.search-box :global(.pagefind-ui__search-clear) {
+		font-size: 0;
+		line-height: 0;
+		top: calc(3px * var(--pagefind-ui-scale));
+		right: calc(3px * var(--pagefind-ui-scale));
+		width: calc(58px * var(--pagefind-ui-scale));
+		min-width: calc(58px * var(--pagefind-ui-scale));
+		height: calc(58px * var(--pagefind-ui-scale));
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--muted);
+		border: 1px solid transparent;
+		transition:
+			color 0.15s ease,
+			background-color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.search-box :global(.pagefind-ui__search-clear:hover) {
+		color: var(--fg);
+		background-color: var(--accent-soft);
+		border-color: var(--border);
+	}
+
+	.search-box :global(.pagefind-ui__search-clear::before) {
+		content: '';
+		width: calc(20px * var(--pagefind-ui-scale));
+		height: calc(20px * var(--pagefind-ui-scale));
+		background-color: currentColor;
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+		mask-size: contain;
+		mask-repeat: no-repeat;
+		mask-position: center;
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18'/%3E%3Cpath d='m6 6 12 12'/%3E%3C/svg%3E");
+		-webkit-mask-size: contain;
+		-webkit-mask-repeat: no-repeat;
+		-webkit-mask-position: center;
+	}
+</style>

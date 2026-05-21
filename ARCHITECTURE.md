@@ -1,0 +1,329 @@
+# Architecture
+
+This document is the single source of truth for how this site is built, why,
+and how every part fits together. It is intentionally opinionated. The guiding
+rule everywhere: **prefer a prebuilt solution, write as little new code as
+possible, and never let any file get big.**
+
+---
+
+## 1. The decision that changes everything
+
+The earlier plan was FastAPI + Jinja2 server-rendered pages. The design you
+actually want — a clean full-screen content site with markdown writing, theming,
+a togglable sidebar, and a terminal vibe — is **a content-driven static site**.
+That is precisely the problem static site generators solve, and it is what your
+reference (`taniarascia.com`) actually is: Gatsby + React + markdown content, not
+a Python-rendered app.
+
+So the architecture changes as follows:
+
+- **The core of the site becomes a static site generator: [Astro](https://astro.build).**
+  Astro is the best-practice choice here because it ships **zero JavaScript by
+  default** (your "simple HTML/CSS most of the time" requirement is the default,
+  not something you build), hydrates JavaScript only on the specific components
+  that need it ("islands" — your "JS on some pages" requirement), and has
+  **first-class markdown/MDX content collections** (your notes system, prebuilt).
+- **FastAPI is demoted from "the app" to an optional API sidecar.** It exists
+  only for the genuinely dynamic "heavier services" you mentioned. The content
+  site does not depend on it. If you never build a heavy service, this container
+  never runs.
+- **Caddy's job gets simpler.** It now mostly serves a folder of static files
+  (extremely fast and cheap) and only reverse-proxies `/api/*` to the sidecar
+  when that exists.
+- **Everything else (Docker Compose, CI/CD, portability, observability)
+  conceptually stays, but gets lighter.** A static site is the most portable and
+  cheapest possible artifact — it strengthens every portability and cost point
+  raised earlier in planning. The built site is a folder; it runs identically on
+  the Azure VM, on a free static host, or anywhere else.
+
+This is a simplification, not added complexity. You write less code, host
+something cheaper, and the dynamic escape hatch is preserved but optional.
+
+---
+
+## 2. Technology choices (and why each one)
+
+| Concern | Choice | Why this and not alternatives |
+|---|---|---|
+| Site core | **Astro** | Zero-JS by default, islands for heavy pages, prebuilt markdown content collections. Gatsby (what Tania uses) is heavier and declining; Next.js is a React app framework, overkill for a content site; Hugo's templating is less pleasant for interactive islands. |
+| Content / notes | **Astro Content Collections + MDX + `remark-math`/`rehype-katex` + `astro-expressive-code` (build-time syntax highlighting, copy-to-clipboard, light/dark code themes bound to mode toggle)** | Prebuilt. Type-checked frontmatter, standard markdown image/link syntax, and MDX lets you drop interactive components into prose. This *is* the notes system — almost no code to write. |
+| Styling | **Plain CSS with custom properties (design tokens)** | Theming (color schemes + dark mode) is a CSS-variable problem. No framework needed; no Tailwind build coupling. Keeps files tiny and understandable. |
+| Interactivity | **Astro islands + vanilla TS** (or a tiny lib like Preact only where a page truly needs it) | Matches "as little JS as possible." Heavy pages get their own isolated island; simple pages ship none. |
+| Dynamic backend (optional) | **FastAPI** sidecar | Only for heavy services. Async, typed, prebuilt OpenAPI. Unchanged from prior reasoning, just no longer the center. |
+| Edge / TLS | **Caddy** | Automatic HTTPS for your domain, serves static files directly, proxies `/api`, does access logging and rate limiting at the edge. Unchanged choice, simpler job. |
+| Orchestration | **Docker Compose** | One-command up/down, portable to any host. Unchanged. |
+| CI/CD | **GitHub Actions** | Build the static site + image, deploy with no manual commands. Unchanged. |
+| Observability | **Caddy logs + optional Prometheus/Grafana/Loki** | A static site has little to observe; the stack now mostly watches the edge and the optional sidecar. Lighter than before. |
+| Search | **`pagefind` + `@pagefind/default-ui`** | Build-time index, client-side search, no backend. |
+
+---
+
+## 3. Frontend design system
+
+The aesthetic brief: clean and full-screen like `taniarascia.com`, with the
+terminal heading/prompt vibe of `ilyamikcoder.com`, a subtle background texture,
+a togglable left sidebar (on **both** mobile and desktop), a color-scheme picker,
+and a night-mode toggle. Execution principle from design best practice: a refined
+minimal direction executed precisely — restraint, careful spacing and
+typography, one memorable motif (the terminal prompt).
+
+### 3.1 Theming model
+
+There are **two independent axes**, both implemented purely as CSS custom
+properties so there is essentially no logic:
+
+1. **Color scheme** — `light-purple | pink | yellow | green | blue` (extensible).
+   This is the accent/identity color, like Tania's green.
+2. **Mode** — `light | dark` (the night-mode button).
+
+Implementation:
+
+- `src/styles/tokens.css` defines every color as a CSS variable. Each scheme is
+  a small block: `[data-scheme="pink"] { --accent: …; --accent-soft: …; }`.
+  Mode is `[data-mode="dark"] { --bg: …; --fg: …; }`. Adding a new color is
+  **one small block of variables** — no component changes anywhere. This is the
+  "extensible, no big files" requirement enforced structurally.
+- A registry at `src/config/themes.ts` lists the schemes (id + display swatch
+  color) so the picker UI is generated from data, never hardcoded.
+- **No-flash init**: a tiny inline script (`ThemeScript.astro`) reads the saved
+  choice from `localStorage` and sets `data-scheme` / `data-mode` on `<html>`
+  *before paint*. This prevents the flash-of-wrong-theme. It is the only inline
+  script and it is ~10 lines.
+- Persistence is `localStorage`; toggling just swaps the attribute and saves.
+
+### 3.2 Theme controls and responsive placement
+
+- **Color picker**: a small button showing the current accent; clicking opens a
+  dropdown of colored circles generated from `themes.ts`. One component:
+  `ThemePicker.astro`.
+- **Night-mode button**: a separate icon toggle. One component: `ModeToggle.astro`.
+- **Responsive position requirement**: controls sit **top-right on phones,
+  top-left on laptops**. This is pure CSS — the control cluster is positioned via
+  a media query (`@media (min-width: 64rem)` flips `right` to `left`). No JS, no
+  duplicate markup.
+
+### 3.3 Sidebar
+
+- Sections are **data-driven** from `src/config/sidebar.ts` (each entry: `id`,
+  `label`, `href`). The sidebar drawer and home tile grid both map over
+  `sidebarSections`; adding "talks" or "bookmarks" is one object in that array.
+- **Togglable on both breakpoints**: a single `SidebarToggle` controls a
+  `data-sidebar="open|closed"` attribute on a layout wrapper. On desktop the
+  sidebar collapses to give full-screen content; on mobile it overlays. Same
+  state, same component, two CSS behaviors via media query. Toggle state persists
+  in `localStorage` so it survives navigation.
+
+### 3.4 Terminal header (the memorable motif)
+
+- One component, `TerminalHeader.astro`, renders a shell-style banner echoing
+  `ilyamikcoder.com`: a prompt line such as `vaibhav@vmattoo.dev:~$` followed by
+  a simulated command whose "output" is the page's nav/intro. Kept **clean**: a
+  monospace display face for the prompt only, normal readable body type for
+  content — the terminal is a flavor accent, not the whole UI. This is the one
+  thing a visitor remembers; everything else stays refined and quiet.
+
+### 3.5 Background texture
+
+- A subtle noise/grain via a tiled SVG or a CSS gradient-mesh layer in
+  `src/styles/texture.css`, applied to the body as a fixed, low-opacity layer so
+  it reads on both light and dark modes. Single file, no images to manage.
+
+### 3.6 Typography
+
+- Per design best practice, avoid generic system/Inter defaults. Pick **one
+  distinctive monospace** for the terminal motif and headings, and **one refined
+  readable serif or humanist sans** for long-form notes. Fonts are declared once
+  in `tokens.css` as variables (`--font-display`, `--font-body`) so changing the
+  whole site's type is a two-line edit. Self-host the font files in `public/` for
+  portability and speed (no third-party request).
+
+### 3.7 No-big-files rule for the frontend
+
+Every component is its own small `.astro` file with a single responsibility.
+CSS is split by concern (`tokens`, `base`, `texture`, plus per-component
+`<style>` blocks scoped by Astro automatically). If a file exceeds ~150 lines,
+it must be split. Content lives as individual markdown files, never in one big
+data file.
+
+---
+
+## 4. Content & notes system (prebuilt, almost no code)
+
+This is entirely **Astro Content Collections**, which is the prebuilt solution
+you asked to be preferred:
+
+- `src/content/config.ts` declares a typed schema per collection
+  (`notes`, `papers`, `projects`, `tasks`): title, date, tags, summary, etc.
+  Invalid frontmatter fails the build — safety for free.
+- Each note is a single `.md` or `.mdx` file in `src/content/notes/`. Writing a
+  new note = adding one file. No database, no admin UI, no code.
+- **Formatting**: Astro renders markdown with built-in Shiki syntax
+  highlighting. Add prebuilt remark/rehype plugins via config for niceties
+  (auto-linked headings, smart typography, footnotes) — configuration, not code.
+- **Images**: use `astro:assets` — drop an image next to the markdown, reference
+  it normally; Astro optimizes and serves responsive variants automatically.
+- **Links / embeds**: standard markdown links work. For richer embeds (a video,
+  an interactive widget) use `.mdx` and drop in a small component — only on the
+  pages that need it, keeping everything else zero-JS.
+- Listing pages (`/notes`, `/papers`, …) are generated by querying the
+  collection. One small page template per section, driven by `sidebar.ts`.
+- **Search**: [Pagefind](https://pagefind.app/) runs after each production build
+  and indexes only regions marked `data-pagefind-body` on individual note pages —
+  not the home page, listing pages, or chrome. The `/search` page mounts the
+  default UI; the index is regenerated in CI with every deploy.
+- **Tag grouping** is built from the notes schema's `tags` array at build time —
+  no tag registry; adding a tag in a note's frontmatter auto-creates the
+  corresponding `/notes/tags/[tag]/` route.
+
+---
+
+## 5. Backend: optional API sidecar
+
+Unchanged in spirit from the prior plan, but **not on the critical path**.
+
+- Lives in `api/`, its own container, its own `Dockerfile`.
+- FastAPI with `pydantic-settings` config, `structlog` JSON logging, a
+  `/healthz`, `/metrics`, and `slowapi` rate limiting on expensive routes.
+- Caddy proxies only `/api/*` to it. The static site calls these endpoints from
+  an island **only on pages that need dynamic behavior**.
+- If you have no heavy service yet, do not build this. The Compose profile keeps
+  it off. Adding it later changes nothing about the static site.
+- Heavier/async work (a queue + worker + Redis) is purely additive here, exactly
+  as planned before.
+
+---
+
+## 6. Repository layout
+
+Modular by construction; every file small and single-purpose.
+
+```
+.
+├── README.md
+├── architecture.md                # this file
+├── todo.md                        # build order for isolated testing
+├── .env.example                   # documents every config var
+├── docker-compose.yml             # caddy + (optional) api + (optional) observability
+├── docker-compose.override.yml    # local dev: hot reload, exposed ports
+├── docker-compose.prod.yml        # prod: restart policies, resource limits
+├── Caddyfile                      # TLS, static serving, /api proxy, logs, rate limit
+│
+├── deploy/
+│   ├── cloud-init.yaml            # provision a blank VM end-to-end
+│   ├── bootstrap.sh               # idempotent first-run setup
+│   └── terraform/                 # optional: Azure VM/IP/NSG as code
+│
+├── .github/workflows/
+│   ├── ci.yml                     # lint + typecheck + build on every PR
+│   └── deploy.yml                 # build static + image, deploy on main
+│
+├── site/                          # THE SITE (Astro static generator)
+│   ├── astro.config.mjs
+│   ├── package.json
+│   ├── Dockerfile                 # build stage → emits static files for Caddy
+│   ├── public/                    # self-hosted fonts, favicons, static images
+│   └── src/
+│       ├── config/
+│       │   ├── site.ts            # name, domain, metadata
+│       │   ├── sidebar.ts         # sidebar sections (extensible: 1 line each)
+│       │   └── themes.ts          # color-scheme registry (extensible: 1 entry each)
+│       ├── styles/
+│       │   ├── tokens.css         # all design tokens: schemes + light/dark + fonts
+│       │   ├── base.css           # reset + base element styles
+│       │   └── texture.css        # background grain/mesh layer
+│       ├── layouts/
+│       │   └── Base.astro         # full-screen shell; sidebar + content slots
+│       ├── components/
+│       │   ├── Sidebar.astro
+│       │   ├── SidebarToggle.astro
+│       │   ├── TerminalHeader.astro
+│       │   ├── ThemePicker.astro
+│       │   ├── ModeToggle.astro
+│       │   └── ThemeScript.astro  # ~10-line no-flash init
+│       ├── content/
+│       │   ├── config.ts          # typed schemas for all collections
+│       │   ├── notes/             # one .md/.mdx per writing
+│       │   ├── papers/
+│       │   ├── projects/
+│       │   └── tasks/
+│       └── pages/
+│           ├── index.astro
+│           ├── notes/index.astro
+│           ├── notes/[...slug].astro
+│           └── …                  # one tiny template per section
+│
+├── api/                           # OPTIONAL dynamic sidecar (only if needed)
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   └── src/api/
+│       ├── main.py                # app factory
+│       ├── config.py
+│       ├── logging.py
+│       ├── routes/                # one module per feature
+│       └── services/              # heavy logic
+│
+└── observability/
+    ├── prometheus.yml
+    ├── loki-config.yml
+    └── grafana/                   # dashboards as code
+```
+
+---
+
+## 7. Deployment architecture
+
+- **Build**: CI runs `astro build` → a static `dist/` folder. The `site`
+  Dockerfile is build-only; the output is handed to Caddy.
+- **Serve**: Caddy serves the static folder directly and proxies `/api/*` to the
+  sidecar if that profile is enabled. Automatic HTTPS for the domain, no manual
+  certificates.
+- **One-command lifecycle**: `docker compose up --build` on a fresh clone builds
+  the Astro site (including Pagefind) inside Docker and serves it with Caddy — no
+  host Node.js required. Caddy serves HTTPS with `tls internal` locally (port
+  8443), JSON access logs on stdout, and per-host rate limiting via
+  `caddy-ratelimit`. `docker compose down` removes it; CI does
+  `pull && up -d` for zero-touch updates.
+- **No manual commands**: GitHub Actions builds and deploys on push to `main`.
+- **Provisioning a fresh host**: `deploy/cloud-init.yaml` installs Docker,
+  configures the firewall, pulls the repo, and brings the stack up on first
+  boot. Optional Terraform codifies the Azure VM, static IP, and NSG so the
+  whole system is reproducible from the repo.
+- **Portability dividend**: because the site is now static, the cheapest correct
+  hosting is trivial. The same artifact runs on the Azure VM (unified with the
+  optional API), on a free static host, or anywhere. This directly addresses the
+  earlier Azure-cost and "deployable elsewhere" concerns: the static site has no
+  lock-in at all, and the only thing that ever needs a real server is the
+  optional API sidecar.
+
+---
+
+## 8. Observability
+
+Lighter than the prior plan because a static site barely needs watching:
+
+- **Always on**: Caddy access logs (JSON) and Docker health checks. This alone
+  covers a static personal site.
+- **When the API sidecar exists**: it exposes `/metrics`; Prometheus scrapes it
+  and Caddy; Loki collects structured logs; Grafana visualizes, with dashboards
+  defined as code in `observability/grafana/`.
+- The observability stack is its own Compose **profile** — off by default, one
+  flag to enable. It never blocks the site.
+
+---
+
+## 9. Conventions that keep this maintainable
+
+- **No big files.** Hard ceiling ~150 lines per file; split on exceed. One
+  component = one file = one responsibility.
+- **Data-driven extensibility.** Sidebar sections and color schemes are entries
+  in a config file, never hardcoded in components. Extending = editing data.
+- **Config via environment.** Nothing host-specific in code; `.env.example`
+  documents every variable.
+- **Prebuilt over bespoke.** Content collections, Shiki highlighting,
+  `astro:assets`, remark/rehype plugins, Caddy auto-TLS — all configuration, not
+  code.
+- **The static site never depends on the backend.** The site builds and deploys
+  with the API absent. The API is purely additive.
+- **Every layer independently testable.** See `todo.md` for the build order that
+  enforces this.

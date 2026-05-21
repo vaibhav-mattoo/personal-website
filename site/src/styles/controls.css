@@ -1,0 +1,50 @@
+/* Shared navbar-style control button (taniarascia.com) */
+.ctrl-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--fg);
+	cursor: pointer;
+}
+
+.ctrl-btn:hover {
+	background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+	color: var(--accent);
+}
+
+.ctrl-btn[aria-expanded='true'],
+.picker[open] > .ctrl-btn {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 1px var(--accent);
+}
+
+.circle {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+}
+
+/* Mode toggle: moon in light, sun in dark (taniarascia.com) */
+#mode-toggle .mode__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#mode-toggle .mode__icon--sun {
+	display: none;
+}
+
+html[data-mode='dark'] #mode-toggle .mode__icon--sun {
+	display: flex;
+}
+
+html[data-mode='dark'] #mode-toggle .mode__icon--moon {
+	display: none;
+}

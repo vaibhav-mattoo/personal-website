@@ -1,0 +1,41 @@
+:root {
+	--toolbar-top: 1rem;
+	--toolbar-btn: 38px;
+	--sheet-gap: 0.65rem;
+	--sheet-inset-x: 0.75rem;
+	--sheet-inset-bottom: 1rem;
+}
+
+.shell {
+	position: relative;
+	min-height: 100dvh;
+}
+
+.shell__main {
+	padding: 4.5rem 1.5rem 2rem;
+	min-height: 100dvh;
+}
+
+.toolbar {
+	position: fixed;
+	top: var(--toolbar-top);
+	left: var(--sheet-inset-x);
+	right: var(--sheet-inset-x);
+	z-index: 60;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	pointer-events: none;
+}
+
+.toolbar > * {
+	pointer-events: auto;
+}
+
+@media (min-width: 64rem) {
+	.toolbar {
+		right: auto;
+		justify-content: flex-start;
+		gap: 0.5rem;
+	}
+}

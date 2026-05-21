@@ -1,0 +1,39 @@
+---
+import { site } from '../config/site';
+
+interface Props {
+	command: string;
+	user?: string;
+	host?: string;
+}
+
+const { command, user = site.terminalUser, host = site.terminalHost } = Astro.props;
+---
+
+<div class="prompt">
+	<span class="prompt__shell">[{user}@{host} ~]$</span>
+	<span class="prompt__cmd">{command}</span>
+</div>
+
+<style>
+	.prompt {
+		display: flex;
+		gap: 0.65rem;
+		align-items: baseline;
+		margin: 1.5rem 0 0.6rem;
+		font-family: var(--font-display);
+		font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.prompt__shell {
+		color: var(--muted);
+		font-weight: 600;
+	}
+
+	.prompt__cmd {
+		color: var(--accent);
+		font-weight: 700;
+	}
+</style>

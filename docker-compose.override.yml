@@ -1,0 +1,10 @@
+# Merged automatically for local runs: `docker compose up --build`
+services:
+  caddy:
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    environment:
+      EXTERNAL_HTTPS_PORT: ${HTTPS_PORT:-8443}
+      RATE_LIMIT_EVENTS: ${RATE_LIMIT_EVENTS:-30}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-30s}

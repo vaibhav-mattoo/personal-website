@@ -1,0 +1,53 @@
+:root {
+	--font-body: system-ui, sans-serif;
+	--font-display: ui-monospace, monospace;
+	--accent-soft: color-mix(in srgb, var(--accent) 18%, var(--bg));
+	--radius: 6px;
+}
+
+/* Surfaces — taniarascia.com beige / gray scale */
+[data-mode='light'] {
+	--bg: #fdf9ee;
+	--fg: #25252b;
+	--muted: #4e4e55;
+	--border: #e5dcbd;
+}
+
+[data-mode='dark'] {
+	--bg: #1c1c20;
+	--fg: #d4d4d8;
+	--muted: #a1a1a8;
+	--border: #323239;
+}
+
+/* Accents — light-dark pairs from taniarascia.com */
+[data-scheme='lavender'][data-mode='light'] {
+	--accent: #a455be;
+}
+[data-scheme='lavender'][data-mode='dark'] {
+	--accent: #d48ceb;
+}
+[data-scheme='pink'][data-mode='light'] {
+	--accent: #d33682;
+}
+[data-scheme='pink'][data-mode='dark'] {
+	--accent: #ff8ac0;
+}
+[data-scheme='yellow'][data-mode='light'] {
+	--accent: #ac7c14;
+}
+[data-scheme='yellow'][data-mode='dark'] {
+	--accent: #fcdc97;
+}
+[data-scheme='green'][data-mode='light'] {
+	--accent: #2d922d;
+}
+[data-scheme='green'][data-mode='dark'] {
+	--accent: #92d192;
+}
+[data-scheme='blue'][data-mode='light'] {
+	--accent: #2f71b4;
+}
+[data-scheme='blue'][data-mode='dark'] {
+	--accent: #6ab0f3;
+}

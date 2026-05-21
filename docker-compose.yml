@@ -1,0 +1,6 @@
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: site/Dockerfile
+    restart: unless-stopped

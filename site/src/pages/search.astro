@@ -1,0 +1,35 @@
+---
+// Pagefind indexes only exist after `npm run build`. In dev, the UI renders but
+// searches return no results — use `npm run build && npm run preview` to test.
+import Base from '../layouts/Base.astro';
+import SearchBox from '../components/SearchBox.astro';
+import TerminalPrompt from '../components/TerminalPrompt.astro';
+---
+
+<Base title="Search">
+	<header class="head">
+		<h1>Search</h1>
+		<p>Full-text search across all notes.</p>
+	</header>
+	<TerminalPrompt command="grep -r ." />
+	<SearchBox />
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1rem;
+	}
+
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+
+	.head p {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+</style>

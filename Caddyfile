@@ -1,0 +1,42 @@
+{
+	auto_https disable_redirects
+	log {
+		output stdout
+		format json
+	}
+	order rate_limit before file_server
+	servers :443 {
+		protocols h1 h2
+	}
+}
+
+# Caddy's `redir` canonicalizes to the :443 site block and drops :8443; set Location explicitly.
+:80 {
+	log {
+		output stdout
+		format json
+	}
+	header Location "https://127.0.0.1:{$EXTERNAL_HTTPS_PORT:8443}{uri}"
+	respond "" 308
+}
+
+https://127.0.0.1, https://localhost {
+	log {
+		output stdout
+		format json
+	}
+	tls internal
+
+	root * /srv
+	encode gzip zstd
+
+	rate_limit {
+		zone site {
+			key {remote_host}
+			events {$RATE_LIMIT_EVENTS:100}
+			window {$RATE_LIMIT_WINDOW:1m}
+		}
+	}
+
+	file_server
+}

@@ -1,0 +1,76 @@
+---
+import { schemes } from '../config/themes';
+---
+
+<details class="picker">
+	<summary class="picker__trigger ctrl-btn" aria-label="Choose color scheme">
+		<span class="picker__current circle"></span>
+	</summary>
+	<div class="picker__menu">
+		<div class="picker__circles">
+			{
+				schemes.map((s) => (
+					<button
+						type="button"
+						class="picker__option"
+						data-set-scheme={s.id}
+						aria-label={s.label}
+					>
+						<span class="circle" style={`background: ${s.swatch}`} />
+					</button>
+				))
+			}
+		</div>
+	</div>
+</details>
+
+<style>
+	.picker {
+		position: relative;
+	}
+
+	.picker__trigger {
+		list-style: none;
+	}
+
+	.picker__trigger::-webkit-details-marker {
+		display: none;
+	}
+
+	.picker__current {
+		background: var(--accent);
+	}
+
+	.picker__menu {
+		position: absolute;
+		top: 44px;
+		left: 50%;
+		transform: translateX(-50%);
+		padding: 0.5rem 0;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		box-shadow: 0 4px 12px color-mix(in srgb, var(--fg) 12%, transparent);
+	}
+
+	.picker__circles {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.picker__option {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		padding: 0.5rem 1rem;
+		border: none;
+		border-radius: 0;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.picker__option:hover {
+		background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+	}
+</style>

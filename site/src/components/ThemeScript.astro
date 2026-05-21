@@ -1,0 +1,22 @@
+---
+import { schemeIds } from '../config/themes';
+import { site, themeStorage } from '../config/site';
+---
+
+<script
+	is:inline
+	define:vars={{
+		ids: schemeIds,
+		schemeKey: themeStorage.scheme,
+		modeKey: themeStorage.mode,
+		defaultScheme: site.defaultScheme,
+		defaultMode: site.defaultMode,
+	}}
+>
+	(() => {
+		const s = localStorage.getItem(schemeKey);
+		const m = localStorage.getItem(modeKey);
+		document.documentElement.dataset.scheme = ids.includes(s) ? s : defaultScheme;
+		document.documentElement.dataset.mode = m === 'dark' || m === 'light' ? m : defaultMode;
+	})();
+</script>

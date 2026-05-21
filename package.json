@@ -1,0 +1,13 @@
+{
+  "name": "personal-website",
+  "private": true,
+  "workspaces": [
+    "site"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w site",
+    "build": "npm run build -w site",
+    "preview": "npm run preview -w site",
+    "up": "docker compose up --build"
+  }
+}

@@ -1,0 +1,90 @@
+.sheet-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	background: color-mix(in srgb, var(--fg) 30%, transparent);
+}
+
+.sheet-overlay[data-state='open'] {
+	animation: sheet-fade-in 0.2s ease;
+}
+
+.sheet-content {
+	position: fixed;
+	top: calc(var(--toolbar-top) + var(--toolbar-btn) + var(--sheet-gap));
+	left: var(--sheet-inset-x);
+	bottom: var(--sheet-inset-bottom);
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+	width: min(15rem, 82vw);
+	padding: 1rem 1.1rem;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	box-shadow:
+		0 2px 8px color-mix(in srgb, var(--fg) 6%, transparent),
+		0 16px 48px color-mix(in srgb, var(--fg) 14%, transparent);
+	outline: none;
+	transform: translateX(0);
+}
+
+.sheet-content[data-state='open'] {
+	animation: sheet-slide-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sheet-content:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.sheet-title {
+	margin: 0 0 0.5rem;
+	padding: 0 0.5rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.sheet-nav {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sheet-nav a {
+	display: block;
+	padding: 0.45rem 0.6rem;
+	border-radius: var(--radius);
+	color: var(--fg);
+	text-decoration: none;
+	transition:
+		background-color 0.15s,
+		color 0.15s;
+}
+
+.sheet-nav a:hover {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+@media (min-width: 64rem) {
+	:root {
+		--sheet-inset-x: 1rem;
+	}
+}
+
+@keyframes sheet-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes sheet-slide-in {
+	from {
+		opacity: 0;
+		transform: translateX(calc(-100% - var(--sheet-inset-x)));
+	}
+}

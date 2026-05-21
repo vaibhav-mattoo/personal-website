@@ -1,0 +1,110 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+	const notes = await getCollection('notes');
+	return notes.map((note) => ({
+		params: { slug: note.id },
+		props: { note },
+	}));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+---
+
+<Base title={note.data.title}>
+	<article class="note" data-pagefind-body>
+		<header class="note__head">
+			<h1>{note.data.title}</h1>
+			<time datetime={note.data.date.toISOString()}>{note.data.date.toLocaleDateString()}</time>
+			{note.data.summary && <p class="note__summary">{note.data.summary}</p>}
+		</header>
+		<div class="note__body">
+			<Content />
+		</div>
+		<p class="note__back"><a href="/notes/">← All notes</a></p>
+	</article>
+</Base>
+
+<style>
+	.note {
+		margin: 2rem 0;
+		max-width: 42rem;
+		font-family: var(--font-body);
+		color: var(--fg);
+		line-height: 1.7;
+	}
+
+	.note__head h1 {
+		margin: 0 0 0.35rem;
+		color: var(--accent);
+		font-size: clamp(1.75rem, 4vw, 2.5rem);
+	}
+
+	.note__head time {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	.note__summary {
+		margin: 0.75rem 0 0;
+		color: var(--muted);
+	}
+
+	.note__body {
+		margin-top: 1.5rem;
+	}
+
+	.note__body :global(h2),
+	.note__body :global(h3) {
+		margin: 1.75rem 0 0.75rem;
+		color: var(--fg);
+	}
+
+	.note__body :global(p),
+	.note__body :global(ul),
+	.note__body :global(ol) {
+		margin: 0 0 1rem;
+	}
+
+	.note__body :global(a) {
+		color: var(--accent);
+	}
+
+	.note__body :global(img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: var(--radius);
+		border: 1px solid var(--border);
+	}
+
+	.note__body :global(pre) {
+		padding: 1rem;
+		overflow-x: auto;
+		border-radius: var(--radius);
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+	}
+
+	.note__body :global(:not(pre) > code) {
+		font-family: var(--font-display);
+		font-size: 0.9em;
+	}
+
+	.note__back {
+		margin-top: 2rem;
+		font-family: var(--font-display);
+	}
+
+	.note__back a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.note__back a:hover {
+		color: var(--accent);
+	}
+</style>

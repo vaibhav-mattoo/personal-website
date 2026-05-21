@@ -1,0 +1,76 @@
+---
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/texture.css';
+import '../styles/controls.css';
+import '../styles/shell.css';
+import '../styles/sheet.css';
+import 'katex/dist/katex.min.css';
+import ThemeScript from '../components/ThemeScript.astro';
+import ThemePicker from '../components/ThemePicker.astro';
+import ModeToggle from '../components/ModeToggle.astro';
+import Handle from '../components/Handle.astro';
+import SidebarDrawer from '../components/SidebarDrawer';
+import { site } from '../config/site';
+
+interface Props {
+	title?: string;
+}
+
+const { title = site.name } = Astro.props;
+---
+
+<html lang="en" data-scheme={site.defaultScheme} data-mode={site.defaultMode}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>{title}</title>
+		<ThemeScript />
+	</head>
+	<body>
+		<div class="shell">
+			<header class="toolbar">
+				<SidebarDrawer client:only="react">
+					<button type="button" class="ctrl-btn" aria-label="Open sidebar" slot="fallback">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							aria-hidden="true"
+						>
+							<path d="M4 5h16"></path>
+							<path d="M4 12h16"></path>
+							<path d="M4 19h16"></path>
+						</svg>
+					</button>
+				</SidebarDrawer>
+				<div class="theme-controls">
+					<ThemePicker />
+					<ModeToggle />
+					<Handle />
+				</div>
+			</header>
+
+			<main class="shell__main">
+				<slot />
+			</main>
+		</div>
+
+		<script>
+			import { bindUi } from '../lib/ui';
+			bindUi();
+		</script>
+	</body>
+</html>
+
+<style>
+	.theme-controls {
+		display: flex;
+		gap: 0.35rem;
+	}
+</style>

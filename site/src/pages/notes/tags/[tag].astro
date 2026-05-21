@@ -1,0 +1,75 @@
+---
+import Base from '../../../layouts/Base.astro';
+import TerminalPrompt from '../../../components/TerminalPrompt.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+	const all = await getCollection('notes');
+	const tagSet = new Set<string>();
+	for (const note of all) for (const tag of note.data.tags) tagSet.add(tag);
+	return [...tagSet].map((tag) => ({
+		params: { tag },
+		props: {
+			notes: all
+				.filter((n) => n.data.tags.includes(tag))
+				.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()),
+		},
+	}));
+}
+
+const { tag } = Astro.params;
+const { notes } = Astro.props;
+const label = decodeURIComponent(tag);
+const count = notes.length;
+---
+
+<Base title={`Tag: ${label}`}>
+	<header class="head">
+		<h1>{label}</h1>
+		<p>{count} note{count === 1 ? '' : 's'} tagged {label}.</p>
+	</header>
+	<TerminalPrompt command={`grep -l "${label}" *.md`} />
+	<ul class="list">
+		{
+			notes.map((note) => (
+				<li>
+					<a href={`/notes/${note.id}/`}>
+						<span class="list__title">{note.data.title}</span>
+						<time datetime={note.data.date.toISOString()} class="list__date">
+							{note.data.date.toLocaleDateString()}
+						</time>
+						{note.data.summary && <span class="list__summary">{note.data.summary}</span>}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+	<p class="back"><a href="/notes/tags/">← all tags</a></p>
+</Base>
+
+<style>
+	.head { margin: 2rem 0 1.5rem; }
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+	.head p { margin: 0; color: var(--muted); font-family: var(--font-body); }
+	.list { margin: 0; padding: 0; list-style: none; }
+	.list a {
+		display: grid;
+		gap: 0.2rem;
+		padding: 1rem 0;
+		border-bottom: 1px solid var(--border);
+		color: var(--fg);
+		text-decoration: none;
+	}
+	.list a:hover .list__title { color: var(--accent); }
+	.list__title { font-family: var(--font-body); font-weight: 600; }
+	.list__date { font-family: var(--font-display); font-size: 0.85rem; color: var(--muted); }
+	.list__summary { font-family: var(--font-body); color: var(--muted); }
+	.back { margin: 1.5rem 0 2rem; font-family: var(--font-display); }
+	.back a { color: var(--muted); text-decoration: none; }
+	.back a:hover { color: var(--accent); }
+</style>

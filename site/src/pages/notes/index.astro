@@ -1,0 +1,93 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const notes = (await getCollection('notes')).sort(
+	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+---
+
+<Base title="Notes">
+	<header class="head">
+		<h1>Notes</h1>
+		<p>
+			Markdown files in <code>src/content/notes/</code> publish here automatically.
+			<a href="/notes/tags/">Browse by tag →</a>
+		</p>
+	</header>
+
+	<ul class="list">
+		{
+			notes.map((note) => (
+				<li>
+					<a href={`/notes/${note.id}/`}>
+						<span class="list__title">{note.data.title}</span>
+						<time datetime={note.data.date.toISOString()} class="list__date">
+							{note.data.date.toLocaleDateString()}
+						</time>
+						{note.data.summary && <span class="list__summary">{note.data.summary}</span>}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1.5rem;
+	}
+
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+
+	.head p {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+
+	.head code {
+		font-family: var(--font-display);
+		font-size: 0.9em;
+	}
+
+	.list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.list a {
+		display: grid;
+		gap: 0.2rem;
+		padding: 1rem 0;
+		border-bottom: 1px solid var(--border);
+		color: var(--fg);
+		text-decoration: none;
+	}
+
+	.list a:hover .list__title {
+		color: var(--accent);
+	}
+
+	.list__title {
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+
+	.list__date {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+
+	.list__summary {
+		font-family: var(--font-body);
+		color: var(--muted);
+	}
+</style>

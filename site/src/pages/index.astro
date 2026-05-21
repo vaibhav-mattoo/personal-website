@@ -1,0 +1,68 @@
+---
+import Base from '../layouts/Base.astro';
+import TerminalPrompt from '../components/TerminalPrompt.astro';
+import SectionTile from '../components/SectionTile.astro';
+import { sidebarSections } from '../config/sidebar';
+---
+
+<Base title="vmattoo.dev">
+	<section class="hero">
+		<h1 class="hero__title">welcome.</h1>
+		<p class="hero__lede">this is my website. there are many like it but this one is mine.</p>
+	</section>
+
+	<TerminalPrompt command="ls" />
+
+	<nav class="tiles">
+		{sidebarSections.map((s) => <SectionTile label={s.label} href={s.href} key={s.id} />)}
+	</nav>
+
+	<TerminalPrompt command="cat about.md" />
+
+	<article class="about">
+		<p>
+			I write notes, track papers, and keep projects here. Pick a section from the
+			tiles above or the sidebar — both read from the same config list.
+		</p>
+	</article>
+</Base>
+
+<style>
+	.hero {
+		margin: 2rem 0 1rem;
+	}
+
+	.hero__title {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2.75rem, 8vw, 4.5rem);
+		font-weight: 600;
+	}
+
+	.hero__lede {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+		font-size: 1.05rem;
+		line-height: 1.6;
+	}
+
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+		gap: 0.5rem;
+		margin: 0.25rem 0 1rem;
+	}
+
+	.about {
+		font-family: var(--font-body);
+		color: var(--fg);
+		line-height: 1.7;
+		max-width: 42rem;
+	}
+
+	.about p {
+		margin: 0 0 1rem;
+	}
+</style>

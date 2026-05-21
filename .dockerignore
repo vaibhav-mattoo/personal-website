@@ -1,0 +1,14 @@
+node_modules
+site/node_modules
+site/dist
+site/.astro
+.git
+.github
+.env
+.env.*
+!.env.example
+ARCHITECTURE.md
+TODO.md
+agent-transcripts
+.cursor
+terminals
