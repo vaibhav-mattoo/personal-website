@@ -39,4 +39,10 @@ https://127.0.0.1, https://localhost {
 	}
 
 	file_server
+
+	handle_errors {
+		@not_found expression {http.error.status_code} == 404
+		rewrite @not_found /404.html
+		file_server
+	}
 }
