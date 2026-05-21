@@ -1,12 +1,12 @@
-import { isSchemeId, schemes } from './themes';
+import { isSchemeId } from './themes';
 
 export const site = {
 	name: import.meta.env.PUBLIC_SITE_NAME ?? 'vmattoo.dev',
 	defaultScheme: isSchemeId(import.meta.env.PUBLIC_DEFAULT_SCHEME)
 		? import.meta.env.PUBLIC_DEFAULT_SCHEME
-		: schemes[0].id,
+		: 'green',
 	defaultMode:
-		import.meta.env.PUBLIC_DEFAULT_MODE === 'dark' ? ('dark' as const) : ('light' as const),
+		import.meta.env.PUBLIC_DEFAULT_MODE === 'light' ? ('light' as const) : ('dark' as const),
 	handle: import.meta.env.PUBLIC_SITE_HANDLE ?? '~vaibhav',
 	terminalUser: import.meta.env.PUBLIC_TERMINAL_USER ?? 'you',
 	terminalHost: import.meta.env.PUBLIC_TERMINAL_HOST ?? 'here',
