@@ -1,52 +1,69 @@
-# Azure VM deployment
+# VM deployment scripts
 
-One-time **Azure prerequisites** (portal or CLI):
+All commands go through **`deploy/deploy.sh`**. Run from a git clone or pipe the script from GitHub on a fresh VM.
 
-1. Linux VM (Ubuntu 22.04+ recommended) with a **static public IP**.
-2. **NSG inbound rules**: allow TCP **80** and **443** from the Internet.
-3. **DNS**: create an **A record** pointing your domain (e.g. `vmattoo.dev`) to the VM public IP.
+## Prerequisites (any cloud VM)
 
-Then on the VM (SSH as a user with `sudo`):
+1. Linux (Ubuntu 22.04+ recommended), **static public IP**
+2. Firewall / NSG: inbound TCP **80** and **443**
+3. DNS **A record**: your domain → VM IP
 
-## Deploy (one command)
+## One-time setup (fresh VM)
+
+**Single command** (no prior clone; installs to `/opt/personal-website`):
 
 ```bash
-sudo bash -c 'git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website && /opt/personal-website/deploy/bootstrap.sh vmattoo.dev'
+curl -fsSL https://raw.githubusercontent.com/vaibhav-mattoo/personal-website/main/deploy/deploy.sh | sudo bash -s setup vmattoo.dev
 ```
 
-Replace `vmattoo.dev` with your domain and the clone URL if your fork differs.
+Replace `vmattoo.dev` and the GitHub URL if you use a fork (`REPO_URL=...` before the command).
 
-### Deploy (two commands)
+**From a clone:**
 
 ```bash
 git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website
-sudo /opt/personal-website/deploy/bootstrap.sh vmattoo.dev
+sudo /opt/personal-website/deploy/deploy.sh setup vmattoo.dev
 ```
 
-The script installs Docker, opens UFW (if active), clones/updates the repo, builds the Astro site inside Docker, starts Caddy on ports 80/443 with automatic HTTPS, and runs as a daemon (`restart: always`).
+`setup` installs Docker, clones/updates the repo, builds the site in Docker (including Pagefind), and starts Caddy with HTTPS.
 
-Re-run the same bootstrap command to pull latest `main` and rebuild.
+## Day-two operations
 
-## Teardown (one command)
+| Command | What it does |
+|---------|----------------|
+| `sudo deploy/deploy.sh update` | `git pull` + rebuild/restart (same step CI uses) |
+| `sudo deploy/deploy.sh teardown` | Remove site, containers, volumes, and deploy tree |
+| `deploy/deploy.sh setup-ci <user> [key.pub]` | Allow GitHub Actions SSH + passwordless `update.sh` |
+
+## GitHub Actions (optional)
+
+After `setup`, enable automatic deploys on push to `main`: [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md).
 
 ```bash
-sudo /opt/personal-website/deploy/teardown.sh
+# On the VM (once)
+./opt/personal-website/deploy/deploy.sh setup-ci azureuser ~/.ssh/personal-website-deploy.pub
 ```
-
-This stops the stack, deletes containers, images, named volumes (including TLS data), removes `/opt/personal-website`, and clears `/var/lib/personal-website/deploy.env`. Delete the DNS A record separately when you want the domain fully detached.
 
 ## Verify
 
 ```bash
 curl -sI "https://vmattoo.dev/"
-docker compose -p personal-website -f /opt/personal-website/docker-compose.yml -f /opt/personal-website/docker-compose.prod.yml ps
+sudo docker compose -p personal-website -f /opt/personal-website/docker-compose.yml -f /opt/personal-website/docker-compose.prod.yml ps
 ```
 
 ## Private repo
 
-Clone with your credentials first, then run bootstrap from that directory (it will use the existing tree):
-
 ```bash
 git clone git@github.com:you/personal-website.git /opt/personal-website
-sudo /opt/personal-website/deploy/bootstrap.sh vmattoo.dev
+sudo /opt/personal-website/deploy/deploy.sh setup vmattoo.dev
 ```
+
+## Script reference
+
+| File | Role |
+|------|------|
+| `deploy.sh` | Entry point (`setup`, `update`, `teardown`, `setup-ci`) |
+| `bootstrap.sh` | Called by `setup` — Docker + compose up |
+| `update.sh` | Called by `update` and CI |
+| `teardown.sh` | Called by `teardown` |
+| `configure-github-deploy.sh` | Called by `setup-ci` |

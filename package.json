@@ -6,6 +6,7 @@
   ],
   "scripts": {
     "dev": "npm run dev -w site",
+    "check": "npm run check -w site",
     "build": "npm run build -w site",
     "preview": "npm run preview -w site",
     "up": "docker compose up --build"

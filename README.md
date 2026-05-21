@@ -25,16 +25,21 @@ Access logs are structured JSON on stdout (`docker compose logs -f caddy`). Edge
 **Deploy (one command on the VM):**
 
 ```bash
-sudo bash -c 'git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website && /opt/personal-website/deploy/bootstrap.sh vmattoo.dev'
+curl -fsSL https://raw.githubusercontent.com/vaibhav-mattoo/personal-website/main/deploy/deploy.sh | sudo bash -s setup vmattoo.dev
 ```
 
-**Teardown (one command):**
+**Update / teardown:**
 
 ```bash
-sudo /opt/personal-website/deploy/teardown.sh
+sudo /opt/personal-website/deploy/deploy.sh update
+sudo /opt/personal-website/deploy/deploy.sh teardown
 ```
 
-See [deploy/README.md](deploy/README.md) for two-command flow, private repos, and re-deploy.
+See [deploy/README.md](deploy/README.md) for all commands, forks, and private repos.
+
+### CI/CD
+
+After [one-time GitHub Actions setup](deploy/GITHUB_ACTIONS.md), every push to `main` rebuilds and restarts the site on your Azure VM (including the Pagefind search index).
 
 Manual compose (without bootstrap):
 

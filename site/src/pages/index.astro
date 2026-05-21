@@ -14,7 +14,7 @@ import { sidebarSections } from '../config/sidebar';
 	<TerminalPrompt command="ls" />
 
 	<nav class="tiles">
-		{sidebarSections.map((s) => <SectionTile label={s.label} href={s.href} key={s.id} />)}
+		{sidebarSections.map((s) => <SectionTile label={s.label} href={s.href} />)}
 	</nav>
 
 	<TerminalPrompt command="cat about.md" />

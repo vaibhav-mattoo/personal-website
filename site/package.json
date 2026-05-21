@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "rm -f .astro/data-store.json && astro sync && astro dev --host 127.0.0.1 --port 4321",
     "build": "astro build",
+    "check": "astro check",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -27,6 +28,9 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
-    "playwright": "^1.50.1"
+    "@astrojs/check": "^0.9.6",
+    "@types/node": "^22.19.11",
+    "playwright": "^1.50.1",
+    "typescript": "^5.9.3"
   }
 }

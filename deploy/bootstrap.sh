@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 # Provision an Azure (or any Linux) VM: Docker, firewall, clone repo, build & run the site.
 #
-# Usage (from a fresh VM — one command):
-#   sudo bash -c 'git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website && /opt/personal-website/deploy/bootstrap.sh vmattoo.dev'
-#
-# Or two commands:
-#   git clone https://github.com/vaibhav-mattoo/personal-website.git /opt/personal-website
-#   sudo /opt/personal-website/deploy/bootstrap.sh vmattoo.dev
+# Prefer the entry point: sudo deploy/deploy.sh setup <domain>
+# (See deploy/README.md)
 #
 # Environment overrides:
 #   SITE_DOMAIN   — required if not passed as first argument
@@ -159,7 +155,9 @@ main() {
 	log "Deploy complete."
 	log "Visit: https://${SITE_DOMAIN}/"
 	log "Logs:  cd ${DEPLOY_DIR} && docker compose -p ${COMPOSE_PROJECT} ${COMPOSE_FILES[*]} logs -f caddy"
-	log "Remove: sudo ${DEPLOY_DIR}/deploy/teardown.sh"
+	log "Update:  sudo ${DEPLOY_DIR}/deploy/deploy.sh update"
+	log "Remove: sudo ${DEPLOY_DIR}/deploy/deploy.sh teardown"
+	chmod +x "${DEPLOY_DIR}/deploy/"*.sh 2>/dev/null || true
 }
 
 main "$@"
