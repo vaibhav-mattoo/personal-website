@@ -17,14 +17,17 @@ interface Props {
 	title?: string;
 }
 
-const { title = site.name } = Astro.props;
+const { title = site.tabTitle } = Astro.props;
+const documentTitle =
+	title === site.tabTitle ? site.tabTitle : `${title} · ${site.tabTitle}`;
 ---
 
 <html lang="en" data-scheme={site.defaultScheme} data-mode={site.defaultMode}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<title>{title}</title>
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<title>{documentTitle}</title>
 		<ThemeScript />
 	</head>
 	<body>

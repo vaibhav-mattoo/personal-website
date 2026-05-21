@@ -2,6 +2,7 @@ import { isSchemeId } from './themes';
 
 export const site = {
 	name: import.meta.env.PUBLIC_SITE_NAME ?? 'vmattoo.dev',
+	tabTitle: import.meta.env.PUBLIC_TAB_TITLE ?? 'Vaibhav on HTTPS',
 	defaultScheme: isSchemeId(import.meta.env.PUBLIC_DEFAULT_SCHEME)
 		? import.meta.env.PUBLIC_DEFAULT_SCHEME
 		: 'green',
