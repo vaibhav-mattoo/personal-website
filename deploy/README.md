@@ -41,7 +41,7 @@ After `setup`, enable automatic deploys on push to `main`: [GITHUB_ACTIONS.md](G
 
 ```bash
 # On the VM (once)
-./opt/personal-website/deploy/deploy.sh setup-ci azureuser ~/.ssh/personal-website-deploy.pub
+./opt/personal-website/deploy/deploy.sh setup-ci vaibhav ~/.ssh/personal-website-deploy.pub
 ```
 
 ## Verify

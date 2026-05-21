@@ -2,8 +2,8 @@
 # One-time VM setup so GitHub Actions can run: sudo /opt/personal-website/deploy/update.sh
 #
 # Usage:
-#   ./deploy/configure-github-deploy.sh azureuser
-#   ./deploy/configure-github-deploy.sh azureuser ~/.ssh/personal-website-deploy.pub
+#   ./deploy/configure-github-deploy.sh vaibhav
+#   ./deploy/configure-github-deploy.sh vaibhav ~/.ssh/personal-website-deploy.pub
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ DEPLOY_DIR="${DEPLOY_DIR:-/opt/personal-website}"
 UPDATE_SCRIPT="${DEPLOY_DIR}/deploy/update.sh"
 SUDOERS_FILE="/etc/sudoers.d/personal-website-deploy"
 
-SSH_USER="${1:-}"
+SSH_USER="${1:-vaibhav}"
 PUBKEY_FILE="${2:-}"
 
 log() { printf '==> %s\n' "$*"; }

@@ -8,7 +8,7 @@
 #   sudo ./deploy/deploy.sh setup vmattoo.dev
 #   sudo ./deploy/deploy.sh update
 #   sudo ./deploy/deploy.sh teardown
-#   ./deploy/deploy.sh setup-ci azureuser   # optional: enable GitHub Actions SSH deploy
+#   ./deploy/deploy.sh setup-ci vaibhav   # optional: enable GitHub Actions SSH deploy
 #
 # Environment: SITE_DOMAIN, DEPLOY_DIR, REPO_URL, REPO_REF (see deploy/README.md)
 
@@ -35,7 +35,7 @@ Examples:
   sudo deploy.sh setup vmattoo.dev
   sudo deploy.sh update
   sudo deploy.sh teardown
-  deploy.sh setup-ci azureuser ~/.ssh/github_actions_deploy.pub
+  deploy.sh setup-ci vaibhav ~/.ssh/github_actions_deploy.pub
 
 Environment:
   DEPLOY_DIR   Install path (default: /opt/personal-website)
@@ -91,7 +91,7 @@ cmd_teardown() {
 }
 
 cmd_setup_ci() {
-	local ssh_user="${1:-${SUDO_USER:-${USER}}}"
+	local ssh_user="${1:-vaibhav}"
 	local pubkey_file="${2:-}"
 	exec "${SCRIPT_DIR}/configure-github-deploy.sh" "${ssh_user}" ${pubkey_file:+"${pubkey_file}"}
 }

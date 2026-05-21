@@ -4,7 +4,7 @@ Pushes to `main` run CI (typecheck + full Astro/Pagefind build), then SSH to you
 
 ## One-time VM setup
 
-SSH into the VM (`23.100.73.113` or your hostname) as the user GitHub will use (e.g. `azureuser`).
+SSH into the VM (`23.100.73.113` or your hostname) as the user GitHub will use (`vaibhav` on this project’s Azure VM).
 
 ### 1. VM script (sudoers + SSH key)
 
@@ -17,17 +17,15 @@ ssh-keygen -t ed25519 -f ~/.ssh/personal-website-deploy -N "" -C "github-actions
 On the **VM** (after the site is deployed):
 
 ```bash
-/opt/personal-website/deploy/deploy.sh setup-ci azureuser ~/.ssh/personal-website-deploy.pub
+/opt/personal-website/deploy/deploy.sh setup-ci vaibhav ~/.ssh/personal-website-deploy.pub
 ```
 
-(Or copy the `.pub` to the VM and pass its path there.)
-
-Replace `azureuser` with your SSH user.
+(Or copy the `.pub` to the VM and pass its path there. Defaults to `vaibhav` if you omit the username.)
 
 Test:
 
 ```bash
-ssh -i ~/.ssh/personal-website-deploy azureuser@23.100.73.113 'sudo /opt/personal-website/deploy/update.sh'
+ssh -i ~/.ssh/personal-website-deploy vaibhav@23.100.73.113 'sudo /opt/personal-website/deploy/update.sh'
 ```
 
 ### 2. Ensure the site is deployed
@@ -53,7 +51,7 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 | Secret | Example | Description |
 |--------|---------|-------------|
 | `DEPLOY_HOST` | `23.100.73.113` | VM public IP or DNS |
-| `DEPLOY_USER` | `azureuser` | SSH user |
+| `DEPLOY_USER` | `vaibhav` | SSH user |
 | `DEPLOY_SSH_KEY` | *(private key)* | Full contents of `personal-website-deploy` (no passphrase) |
 | `DEPLOY_PORT` | `22` | Optional; omit to use 22 |
 
