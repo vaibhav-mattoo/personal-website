@@ -20,6 +20,7 @@
 			dark: 'html[data-mode="dark"]',
 			path: window.location.pathname.replace(/\/$/, '') || '/',
 			lang: 'en',
+			meta: ['nick'],
 			requiredMeta: ['nick'],
 			commentSorting: 'latest',
 		});
@@ -55,5 +56,36 @@
 		--waline-info-color: var(--muted);
 		--waline-avatar-radius: 50%;
 		--waline-border: 1px solid var(--border);
+	}
+
+	.comments :global(.wl-header) {
+		gap: 0.5rem;
+	}
+
+	.comments :global(.wl-header input),
+	.comments :global(.wl-editor) {
+		padding: 0.6rem 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg);
+		color: var(--fg);
+		font-family: var(--font-body);
+		font-size: 0.95rem;
+		transition:
+			border-color 0.15s,
+			box-shadow 0.15s,
+			background-color 0.15s;
+	}
+
+	.comments :global(.wl-header input::placeholder),
+	.comments :global(.wl-editor::placeholder) {
+		color: var(--muted);
+	}
+
+	.comments :global(.wl-header input:focus),
+	.comments :global(.wl-editor:focus) {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent);
 	}
 </style>

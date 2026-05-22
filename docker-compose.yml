@@ -25,6 +25,7 @@ services:
       SMTP_SERVICE: ${WALINE_SMTP_SERVICE:-}
       SMTP_USER: ${WALINE_SMTP_USER:-}
       SMTP_PASS: ${WALINE_SMTP_PASS:-}
+      DISABLE_REGION: 'true'
 
 volumes:
   waline-data:
