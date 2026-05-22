@@ -123,6 +123,24 @@ ensure_env_file() {
 	fi
 }
 
+ensure_waline_db() {
+	local volume="${COMPOSE_PROJECT}_waline-data"
+
+	docker volume create "${volume}" >/dev/null 2>&1 || true
+
+	if docker run --rm -v "${volume}:/data" alpine test -f /data/waline.sqlite 2>/dev/null; then
+		log "Waline SQLite database already present in ${volume}; preserving"
+		return
+	fi
+
+	log "Seeding Waline SQLite schema into ${volume}"
+	docker run --rm \
+		-v "${volume}:/data" \
+		curlimages/curl:latest \
+		-fsSL -o /data/waline.sqlite \
+		https://github.com/walinejs/waline/raw/main/assets/waline.sqlite
+}
+
 write_state() {
 	local ip="$1" ufw_added="$2"
 	mkdir -p "${STATE_DIR}"
@@ -170,6 +188,7 @@ main() {
 	fi
 
 	ensure_env_file
+	ensure_waline_db
 	write_state "${ip}" "${ufw_added}"
 	deploy_stack
 
