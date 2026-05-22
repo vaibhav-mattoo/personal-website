@@ -103,6 +103,26 @@ ensure_repo() {
 	cd "${DEPLOY_DIR}"
 }
 
+ensure_env_file() {
+	local env_file="${DEPLOY_DIR}/.env"
+	if [[ ! -f "${env_file}" ]]; then
+		log "Generating ${env_file} with a fresh WALINE_JWT_TOKEN"
+		install -m 600 /dev/null "${env_file}"
+		{
+			printf 'SITE_DOMAIN=%s\n' "${SITE_DOMAIN}"
+			printf 'PUBLIC_WALINE_SERVER_URL=https://comments.%s\n' "${SITE_DOMAIN}"
+			printf 'WALINE_JWT_TOKEN=%s\n' "$(openssl rand -hex 32)"
+		} >>"${env_file}"
+	else
+		if grep -q '^SITE_DOMAIN=' "${env_file}"; then
+			sed -i "s|^SITE_DOMAIN=.*|SITE_DOMAIN=${SITE_DOMAIN}|" "${env_file}"
+		else
+			printf 'SITE_DOMAIN=%s\n' "${SITE_DOMAIN}" >>"${env_file}"
+		fi
+		log "Reusing existing ${env_file}"
+	fi
+}
+
 write_state() {
 	local ip="$1" ufw_added="$2"
 	mkdir -p "${STATE_DIR}"
@@ -149,6 +169,7 @@ main() {
 		warn "Azure NSG: allow inbound TCP 80 and 443 to this VM."
 	fi
 
+	ensure_env_file
 	write_state "${ip}" "${ufw_added}"
 	deploy_stack
 

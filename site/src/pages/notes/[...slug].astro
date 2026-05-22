@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Comments from '../../components/Comments.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -26,6 +27,8 @@ const { Content } = await render(note);
 		</div>
 		<p class="note__back"><a href="/notes/">← All notes</a></p>
 	</article>
+
+	<Comments />
 </Base>
 
 <style>

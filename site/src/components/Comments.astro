@@ -1,0 +1,59 @@
+---
+// Loaded only on note slug pages. The Waline client bundle (~53 KB gzip) is
+// scoped to those pages by Astro's per-page bundling.
+---
+
+<section class="comments" aria-label="Comments">
+	<div id="waline" class="waline"></div>
+</section>
+
+<script>
+	import { init } from '@waline/client';
+	import '@waline/client/style';
+
+	const serverURL = import.meta.env.PUBLIC_WALINE_SERVER_URL;
+
+	if (serverURL) {
+		init({
+			el: '#waline',
+			serverURL,
+			dark: 'html[data-mode="dark"]',
+			path: window.location.pathname.replace(/\/$/, '') || '/',
+			lang: 'en',
+			requiredMeta: ['nick'],
+			commentSorting: 'latest',
+		});
+	} else {
+		const el = document.getElementById('waline');
+		if (el) {
+			el.textContent =
+				'Comments are disabled: PUBLIC_WALINE_SERVER_URL is not set at build time.';
+		}
+	}
+</script>
+
+<style>
+	.comments {
+		margin: 3rem 0 1rem;
+		padding-top: 2rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.comments {
+		--waline-font-size: 1rem;
+		--waline-theme-color: var(--accent);
+		--waline-active-color: var(--accent);
+		--waline-color: var(--fg);
+		--waline-bg-color: var(--bg);
+		--waline-bg-color-light: var(--accent-soft);
+		--waline-bg-color-hover: var(--accent-soft);
+		--waline-border-color: var(--border);
+		--waline-disable-bg-color: var(--accent-soft);
+		--waline-disable-color: var(--muted);
+		--waline-code-bg-color: var(--bg);
+		--waline-info-bg-color: var(--accent-soft);
+		--waline-info-color: var(--muted);
+		--waline-avatar-radius: 50%;
+		--waline-border: 1px solid var(--border);
+	}
+</style>

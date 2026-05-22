@@ -4,3 +4,27 @@ services:
       context: .
       dockerfile: site/Dockerfile
     restart: unless-stopped
+    depends_on:
+      - waline
+
+  waline:
+    image: lizheming/waline:latest
+    restart: unless-stopped
+    expose:
+      - "8360"
+    volumes:
+      - waline-data:/app/data
+    environment:
+      TZ: ${TZ:-America/Los_Angeles}
+      SQLITE_PATH: /app/data
+      JWT_TOKEN: ${WALINE_JWT_TOKEN}
+      SITE_NAME: ${SITE_DOMAIN}
+      SITE_URL: https://${SITE_DOMAIN}
+      SECURE_DOMAINS: ${SITE_DOMAIN},comments.${SITE_DOMAIN}
+      AUTHOR_EMAIL: ${WALINE_AUTHOR_EMAIL:-}
+      SMTP_SERVICE: ${WALINE_SMTP_SERVICE:-}
+      SMTP_USER: ${WALINE_SMTP_USER:-}
+      SMTP_PASS: ${WALINE_SMTP_PASS:-}
+
+volumes:
+  waline-data:

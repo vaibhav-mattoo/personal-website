@@ -4,6 +4,9 @@ services:
     build:
       args:
         PUBLIC_SITE_NAME: ${SITE_DOMAIN}
+        PUBLIC_WALINE_SERVER_URL: ${PUBLIC_WALINE_SERVER_URL:-https://comments.${SITE_DOMAIN}}
+    restart: always
+  waline:
     restart: always
     ports:
       - "80:80"
