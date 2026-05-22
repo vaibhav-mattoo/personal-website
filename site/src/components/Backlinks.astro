@@ -1,0 +1,61 @@
+---
+import type { Backlink } from '../lib/backlinks';
+
+interface Props {
+	links: Backlink[];
+}
+
+const { links } = Astro.props;
+---
+
+{
+	links.length > 0 && (
+		<section class="backlinks" aria-label="Backlinks">
+			<h2 class="backlinks__title">Mentioned in</h2>
+			<ul class="backlinks__list">
+				{links.map((b) => (
+					<li>
+						<a href={`/notes/${b.id}/`}>{b.title}</a>
+					</li>
+				))}
+			</ul>
+		</section>
+	)
+}
+
+<style>
+	.backlinks {
+		margin: 3rem 0 1rem;
+		padding-top: 2rem;
+		border-top: 1px solid var(--border);
+		max-width: 42rem;
+	}
+
+	.backlinks__title {
+		margin: 0 0 0.5rem;
+		font-family: var(--font-display);
+		font-size: 0.9rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--muted);
+	}
+
+	.backlinks__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.backlinks__list a {
+		display: block;
+		padding: 0.4rem 0;
+		color: var(--fg);
+		text-decoration: none;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.backlinks__list a:hover {
+		color: var(--accent);
+	}
+</style>

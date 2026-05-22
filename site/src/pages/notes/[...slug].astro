@@ -1,7 +1,14 @@
 ---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+import readingTime from 'reading-time';
 import Base from '../../layouts/Base.astro';
+import NoteMeta from '../../components/NoteMeta.astro';
+import Toc from '../../components/Toc.astro';
+import ReadingProgress from '../../components/ReadingProgress.astro';
+import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
-import { getCollection, render } from 'astro:content';
+import { getBacklinks } from '../../lib/backlinks';
+import '../../styles/prose.css';
 
 export async function getStaticPaths() {
 	const notes = await getCollection('notes');
@@ -11,94 +18,95 @@ export async function getStaticPaths() {
 	}));
 }
 
+interface Props {
+	note: CollectionEntry<'notes'>;
+}
+
 const { note } = Astro.props;
-const { Content } = await render(note);
+const { Content, headings } = await render(note);
+
+const words = (note.body ?? '').trim().split(/\s+/).filter(Boolean).length;
+const stats = readingTime(note.body ?? '');
+const minutes = Math.max(1, Math.ceil(stats.minutes));
+
+const backlinks = await getBacklinks(note.id);
 ---
 
 <Base title={note.data.title}>
+	<ReadingProgress />
+
 	<article class="note" data-pagefind-body>
-		<header class="note__head">
+		<header class="note-head">
 			<h1>{note.data.title}</h1>
-			<time datetime={note.data.date.toISOString()}>{note.data.date.toLocaleDateString()}</time>
-			{note.data.summary && <p class="note__summary">{note.data.summary}</p>}
+			<NoteMeta date={note.data.date} minutes={minutes} words={words} />
+			{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
 		</header>
-		<div class="note__body">
-			<Content />
+
+		<div class="note-layout">
+			<div class="prose">
+				<Content />
+			</div>
+			<Toc headings={headings} />
 		</div>
+
 		<p class="note__back"><a href="/notes/">← All notes</a></p>
 	</article>
 
+	<Backlinks links={backlinks} />
 	<Comments />
 </Base>
+
+<script>
+	import mediumZoom from 'medium-zoom';
+	mediumZoom('.prose img', {
+		margin: 24,
+		background: 'rgba(0,0,0,0.85)',
+	});
+</script>
 
 <style>
 	.note {
 		margin: 2rem 0;
-		max-width: 42rem;
-		font-family: var(--font-body);
-		color: var(--fg);
-		line-height: 1.7;
+		max-width: 56rem;
 	}
 
-	.note__head h1 {
-		margin: 0 0 0.35rem;
+	.note-head {
+		margin: 0 0 1.5rem;
+		max-width: 42rem;
+	}
+
+	.note-head h1 {
+		margin: 0 0 0.5rem;
 		color: var(--accent);
+		font-family: var(--font-body);
 		font-size: clamp(1.75rem, 4vw, 2.5rem);
 	}
 
-	.note__head time {
-		font-family: var(--font-display);
-		font-size: 0.85rem;
+	.note-head__summary {
+		margin: 0.5rem 0 0;
 		color: var(--muted);
+		font-style: italic;
 	}
 
-	.note__summary {
-		margin: 0.75rem 0 0;
-		color: var(--muted);
+	.note-layout {
+		display: grid;
+		gap: 2rem;
 	}
 
-	.note__body {
-		margin-top: 1.5rem;
+	@media (min-width: 64rem) {
+		.note-layout {
+			grid-template-columns: minmax(0, 1fr) 14rem;
+			align-items: start;
+		}
 	}
 
-	.note__body :global(h2),
-	.note__body :global(h3) {
-		margin: 1.75rem 0 0.75rem;
-		color: var(--fg);
-	}
-
-	.note__body :global(p),
-	.note__body :global(ul),
-	.note__body :global(ol) {
-		margin: 0 0 1rem;
-	}
-
-	.note__body :global(a) {
-		color: var(--accent);
-	}
-
-	.note__body :global(img) {
-		max-width: 100%;
-		height: auto;
-		border-radius: var(--radius);
-		border: 1px solid var(--border);
-	}
-
-	.note__body :global(pre) {
-		padding: 1rem;
-		overflow-x: auto;
-		border-radius: var(--radius);
-		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--accent) 10%, var(--bg));
-	}
-
-	.note__body :global(:not(pre) > code) {
-		font-family: var(--font-display);
-		font-size: 0.9em;
+	.prose {
+		max-width: 42rem;
 	}
 
 	.note__back {
 		margin-top: 2rem;
+		max-width: 42rem;
 		font-family: var(--font-display);
 	}
 

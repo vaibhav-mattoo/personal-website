@@ -1,0 +1,36 @@
+<div class="progress" aria-hidden="true"><div class="progress__bar"></div></div>
+
+<script>
+	const bar = document.querySelector<HTMLElement>('.progress__bar');
+	if (bar) {
+		const onScroll = () => {
+			const max = document.documentElement.scrollHeight - window.innerHeight;
+			const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+			bar.style.transform = `scaleX(${pct / 100})`;
+		};
+		onScroll();
+		window.addEventListener('scroll', onScroll, { passive: true });
+		window.addEventListener('resize', onScroll, { passive: true });
+	}
+</script>
+
+<style>
+	.progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		z-index: 70;
+		pointer-events: none;
+		background: transparent;
+	}
+
+	.progress__bar {
+		height: 100%;
+		background: var(--accent);
+		transform-origin: left;
+		transform: scaleX(0);
+		transition: transform 0.05s linear;
+	}
+</style>
