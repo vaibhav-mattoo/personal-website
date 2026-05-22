@@ -43,10 +43,10 @@ const backlinks = await getBacklinks(note.id);
 		</header>
 
 		<div class="note-layout">
+			<Toc headings={headings} />
 			<div class="prose">
 				<Content />
 			</div>
-			<Toc headings={headings} />
 		</div>
 
 		<p class="note__back"><a href="/notes/">← All notes</a></p>
@@ -97,6 +97,16 @@ const backlinks = await getBacklinks(note.id);
 		.note-layout {
 			grid-template-columns: minmax(0, 1fr) 14rem;
 			align-items: start;
+		}
+
+		.note-layout .prose {
+			grid-column: 1;
+			grid-row: 1;
+		}
+
+		.note-layout :global(.toc) {
+			grid-column: 2;
+			grid-row: 1;
 		}
 	}
 
