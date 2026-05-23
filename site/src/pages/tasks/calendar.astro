@@ -4,6 +4,15 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 ---
 
 <Base title="Calendar">
+	<link rel="preconnect" href="https://app.cal.com" />
+	<link rel="dns-prefetch" href="https://app.cal.com" />
+	<link
+		rel="preload"
+		href="https://app.cal.com/embed/embed.js"
+		as="script"
+		crossorigin="anonymous"
+	/>
+
 	<header class="head">
 		<h1>Calendar</h1>
 		<p>Book a 30-minute slot via cal.com.</p>

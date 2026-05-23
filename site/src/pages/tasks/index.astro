@@ -80,3 +80,35 @@ const items = [
 		background: var(--accent-soft);
 	}
 </style>
+
+<script is:inline>
+	// Warm the connection to cal.com when the user shows intent to visit
+	// the Calendar page. One-shot per page load.
+	let warmed = false;
+
+	const warmCalCom = () => {
+		if (warmed) return;
+		warmed = true;
+
+		const head = document.head;
+
+		const preconnect = document.createElement('link');
+		preconnect.rel = 'preconnect';
+		preconnect.href = 'https://app.cal.com';
+		head.appendChild(preconnect);
+
+		const preload = document.createElement('link');
+		preload.rel = 'preload';
+		preload.as = 'script';
+		preload.href = 'https://app.cal.com/embed/embed.js';
+		preload.crossOrigin = 'anonymous';
+		head.appendChild(preload);
+	};
+
+	const calendarTile = document.querySelector('a[href="/tasks/calendar/"]');
+	if (calendarTile) {
+		calendarTile.addEventListener('pointerenter', warmCalCom, { once: true });
+		calendarTile.addEventListener('focus', warmCalCom, { once: true });
+		calendarTile.addEventListener('touchstart', warmCalCom, { once: true, passive: true });
+	}
+</script>
