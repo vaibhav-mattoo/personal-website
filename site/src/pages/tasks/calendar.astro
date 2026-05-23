@@ -98,21 +98,21 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 
 	.cal-embed {
 		width: 100%;
-		min-height: 700px;
-		height: 80vh;
+		/* Increase min-height to roughly the size of a 24-hour grid */
+		min-height: 1300px; 
+		height: auto; /* Let it grow as tall as it needs to */
 		margin: 1rem 0 0;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		overflow-y: auto;
 		background: var(--bg);
+		/* Notice: 'overflow' is completely removed so it doesn't clip or create internal scrollbars */
 	}
 
 	/* On mobile, the embed's own slots-view kicks in via
 	   useSlotsViewOnSmallScreen; let it size itself naturally. */
 	@media (max-width: 40rem) {
 		.cal-embed {
-			min-height: 600px;
-			height: auto;
+			min-height: 900px;
 		}
 	}
 
