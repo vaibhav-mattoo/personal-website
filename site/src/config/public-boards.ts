@@ -20,7 +20,7 @@ export const publicBoards: PublicBoard[] = [
 	{
 		title: 'Research',
 		description: 'Thesis work in flight',
-		url: 'hhttps://tasks.vmattoo.dev/1/public/boards/NaCatNfRAUj2vkTy5SFofsgD',
+		url: 'https://tasks.vmattoo.dev/1/public/boards/NaCatNfRAUj2vkTy5SFofsgD',
 	},
 ];
 
