@@ -50,7 +50,7 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 	// Mount inline.
 	Cal.ns['30min']('inline', {
 		elementOrSelector: '#my-cal-inline-30min',
-		config: { layout: 'month_view', useSlotsViewOnSmallScreen: 'true' },
+		config: { layout: 'week_view', useSlotsViewOnSmallScreen: 'true' },
 		calLink: 'vaibhav-mattoo-ykuckm/30min',
 	});
 
@@ -65,7 +65,7 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 	const applyUi = () => {
 		Cal.ns['30min']('ui', {
 			hideEventTypeDetails: false,
-			layout: 'month_view',
+			layout: 'week_view',
 			theme: currentMode(),
 		});
 	};
