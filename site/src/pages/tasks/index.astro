@@ -5,7 +5,6 @@ import SectionTile from '../../components/SectionTile.astro';
 
 const items = [
 	{ label: 'Current tasks', href: '/tasks/boards/', external: false },
-	{ label: 'Paper reading queue', href: '/tasks/papers/', external: false },
 	{ label: 'Calendar', href: '/tasks/calendar/', external: false },
 ];
 ---
@@ -13,7 +12,7 @@ const items = [
 <Base title="Tasks">
 	<header class="head">
 		<h1>Tasks</h1>
-		<p>Kanban for now, papers I'm reading, and what's on the calendar.</p>
+		<p>Boards I'm working on and a calendar to book time.</p>
 	</header>
 
 	<TerminalPrompt command="ls tasks/" />

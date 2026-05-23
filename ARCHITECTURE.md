@@ -65,7 +65,7 @@ Comments are scoped to **individual note pages** only (not the notes index, home
 
 The note slug renderer composes the rendered markdown with reading-time metadata, an accent-colored top progress bar, a sticky/collapsing table of contents (only when a note has ≥ 3 h2/h3 headings), a build-time backlinks section, image lightboxes and figure captions, Mermaid diagrams, and themed blockquotes. All cross-cutting prose styles live in `src/styles/prose.css`; per-feature components live alongside the page so each file stays small and single-purpose.
 
-The `/tasks` hub links to three areas: **Current tasks** (`/tasks/boards/`), **Paper reading queue** (placeholder), and **Calendar** (placeholder). `/tasks/boards/` lists published Fizzy boards from `src/config/public-boards.ts`; publishing or unpublishing in Fizzy is independent of that list (unpublished boards stop working at their URL; removing an entry removes the tile after the next deploy). Only the integration points live in this repo — a Caddy proxy block, the `vmattoo-shared` Docker network, and Kamal deploy templates under `deploy/fizzy/`. Fizzy itself is built and deployed from the user's fork.
+The `/tasks` hub links to **Current tasks** (`/tasks/boards/`) and **Calendar** (cal.com embed). `/tasks/boards/` lists published Fizzy boards from `src/config/public-boards.ts`; publishing or unpublishing in Fizzy is independent of that list (unpublished boards stop working at their URL; removing an entry removes the tile after the next deploy). Only the integration points live in this repo — a Caddy proxy block, the `vmattoo-shared` Docker network, and Kamal deploy templates under `deploy/fizzy/`. Fizzy itself is built and deployed from the user's fork.
 
 ---
 
