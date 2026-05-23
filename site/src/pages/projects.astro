@@ -1,0 +1,78 @@
+---
+import Base from '../layouts/Base.astro';
+import TerminalPrompt from '../components/TerminalPrompt.astro';
+import { projects, githubUsername } from '../config/projects';
+import { fetchRepoMeta } from '../lib/github';
+import '../styles/projects-page.css';
+
+const meta = await fetchRepoMeta(
+	githubUsername,
+	projects.map((p) => p.slug),
+);
+---
+
+<Base title="Projects">
+	<header class="head">
+		<h1>Projects</h1>
+		<p>
+			Open-source things I've built. Stars and descriptions are pulled from GitHub at
+			build time.
+		</p>
+	</header>
+
+	<TerminalPrompt command="ls projects/" />
+
+	<div class="cards">
+		{
+			projects.map((p) => {
+				const repoUrl = `https://github.com/${githubUsername}/${p.slug}`;
+				const repoMeta = meta[p.slug];
+				const displayName = p.name ?? p.slug;
+				const tagline = p.tagline ?? repoMeta?.description ?? '';
+				const stars = repoMeta?.stars;
+
+				return (
+					<article class="card">
+						{stars !== undefined && (
+							<a
+								class="stars"
+								href={`${repoUrl}/stargazers`}
+								target="_blank"
+								rel="noopener"
+								aria-label={`${stars} stars on GitHub`}
+							>
+								<span aria-hidden="true">★</span>
+								<span>{stars.toLocaleString()}</span>
+							</a>
+						)}
+
+						<time class="card__date">{p.date}</time>
+
+						<a
+							class="card__title"
+							href={repoUrl}
+							target="_blank"
+							rel="noopener"
+						>
+							{displayName}
+						</a>
+
+						{tagline && <p class="card__tagline">{tagline}</p>}
+
+						<div class="card__links">
+							{p.writeup && <a class="link" href={p.writeup}>Article</a>}
+							{p.url && (
+								<a class="link" href={p.url} target="_blank" rel="noopener">
+									Demo ↗
+								</a>
+							)}
+							<a class="link" href={repoUrl} target="_blank" rel="noopener">
+								Source ↗
+							</a>
+						</div>
+					</article>
+				);
+			})
+		}
+	</div>
+</Base>

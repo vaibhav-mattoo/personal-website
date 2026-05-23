@@ -1,0 +1,120 @@
+.head {
+	margin: 2rem 0 1rem;
+}
+
+.head h1 {
+	margin: 0 0 0.5rem;
+	color: var(--accent);
+	font-family: var(--font-body);
+	font-size: clamp(2rem, 5vw, 2.75rem);
+}
+
+.head p {
+	margin: 0;
+	color: var(--muted);
+	font-family: var(--font-body);
+}
+
+.cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+	gap: 1rem;
+	margin: 0.5rem 0 1rem;
+}
+
+.card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 1.1rem 1.1rem 0.9rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg);
+	transition:
+		border-color 0.15s,
+		background-color 0.15s;
+}
+
+.card:hover {
+	border-color: var(--accent);
+}
+
+.stars {
+	position: absolute;
+	top: 0.7rem;
+	right: 0.7rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.15rem 0.5rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	font-family: var(--font-display);
+	font-size: 0.75rem;
+	color: var(--muted);
+	text-decoration: none;
+	background: var(--bg);
+	transition:
+		color 0.15s,
+		border-color 0.15s;
+}
+
+.stars:hover {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+
+.card__date {
+	font-family: var(--font-display);
+	font-size: 0.75rem;
+	color: var(--muted);
+}
+
+.card__title {
+	font-family: var(--font-body);
+	font-size: 1.15rem;
+	font-weight: 600;
+	color: var(--accent);
+	text-decoration: none;
+	margin-top: 0.15rem;
+}
+
+.card__title:hover {
+	text-decoration: underline;
+}
+
+.card__tagline {
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: 0.92rem;
+	color: var(--fg);
+	flex: 1;
+}
+
+.card__links {
+	display: flex;
+	gap: 0.4rem;
+	margin-top: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.link {
+	padding: 0.32rem 0.65rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	font-family: var(--font-display);
+	font-size: 0.72rem;
+	color: var(--fg);
+	text-decoration: none;
+	transition:
+		border-color 0.15s,
+		color 0.15s,
+		background-color 0.15s;
+}
+
+.link:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+	background: var(--accent-soft);
+}

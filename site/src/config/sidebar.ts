@@ -7,8 +7,8 @@ export type SidebarSection = {
 
 export const sidebarSections = [
 	{ id: 'tasks', label: 'Tasks', href: '/tasks' },
-	{ id: 'papers', label: 'Papers', href: '/papers' },
 	{ id: 'notes', label: 'Notes', href: '/notes' },
 	{ id: 'projects', label: 'Projects', href: '/projects' },
+	{ id: 'papers', label: 'Papers', href: '/papers' },
 	{ id: 'search', label: 'Search', href: '/search' },
 ] as const satisfies readonly SidebarSection[];
