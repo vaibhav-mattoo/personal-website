@@ -19,6 +19,14 @@ REPO_REF="${REPO_REF:-main}"
 
 log() { printf '==> %s\n' "$*"; }
 
+ensure_shared_network() {
+	if docker network inspect vmattoo-shared >/dev/null 2>&1; then
+		return
+	fi
+	log "Creating shared Docker network: vmattoo-shared"
+	docker network create vmattoo-shared
+}
+
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 	printf 'Run as root: sudo %s\n' "$0" >&2
 	exit 1
@@ -37,6 +45,7 @@ git checkout "${REPO_REF}"
 git reset --hard "origin/${REPO_REF}"
 
 export SITE_DOMAIN
+ensure_shared_network
 log "Rebuilding and restarting (domain: ${SITE_DOMAIN})"
 docker compose -p "${COMPOSE_PROJECT}" "${COMPOSE_FILES[@]}" up -d --build --remove-orphans
 
