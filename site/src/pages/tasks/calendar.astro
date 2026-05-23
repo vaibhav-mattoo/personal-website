@@ -6,16 +6,77 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 <Base title="Calendar">
 	<header class="head">
 		<h1>Calendar</h1>
+		<p>Book a 30-minute slot via cal.com.</p>
 	</header>
 
-	<TerminalPrompt command="cal -3" />
+	<TerminalPrompt command="cal --book 30min" />
 
-	<p class="body">
-		Not yet populated. This will show what's on the calendar once that workflow is wired up.
-	</p>
+	<div id="my-cal-inline-30min" class="cal-embed"></div>
 
 	<p class="back"><a href="/tasks/">← back to tasks</a></p>
 </Base>
+
+<script is:inline>
+	// cal.com loader — verbatim from the cal.com inline embed snippet.
+	(function (C, A, L) {
+		let p = function (a, ar) { a.q.push(ar); };
+		let d = C.document;
+		C.Cal = C.Cal || function () {
+			let cal = C.Cal;
+			let ar = arguments;
+			if (!cal.loaded) {
+				cal.ns = {};
+				cal.q = cal.q || [];
+				d.head.appendChild(d.createElement('script')).src = A;
+				cal.loaded = true;
+			}
+			if (ar[0] === L) {
+				const api = function () { p(api, arguments); };
+				const namespace = ar[1];
+				api.q = api.q || [];
+				if (typeof namespace === 'string') {
+					cal.ns[namespace] = cal.ns[namespace] || api;
+					p(cal.ns[namespace], ar);
+					p(cal, ['initNamespace', namespace]);
+				} else p(cal, ar);
+				return;
+			}
+			p(cal, ar);
+		};
+	})(window, 'https://app.cal.com/embed/embed.js', 'init');
+
+	Cal('init', '30min', { origin: 'https://app.cal.com' });
+
+	// Mount inline.
+	Cal.ns['30min']('inline', {
+		elementOrSelector: '#my-cal-inline-30min',
+		config: { layout: 'month_view', useSlotsViewOnSmallScreen: 'true' },
+		calLink: 'vaibhav-mattoo-ykuckm/30min',
+	});
+
+	// Theme sync: read the site's current mode from <html data-mode="…">
+	// (set by ThemeScript.astro before paint) and keep cal.com in step
+	// whenever the user toggles the theme picker.
+	const currentMode = () =>
+		document.documentElement.getAttribute('data-mode') === 'dark'
+			? 'dark'
+			: 'light';
+
+	const applyUi = () => {
+		Cal.ns['30min']('ui', {
+			hideEventTypeDetails: false,
+			layout: 'month_view',
+			theme: currentMode(),
+		});
+	};
+
+	applyUi();
+
+	new MutationObserver(applyUi).observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ['data-mode'],
+	});
+</script>
 
 <style>
 	.head {
@@ -23,23 +84,41 @@ import TerminalPrompt from '../../components/TerminalPrompt.astro';
 	}
 
 	.head h1 {
-		margin: 0;
+		margin: 0 0 0.5rem;
 		color: var(--accent);
 		font-family: var(--font-body);
-		font-size: clamp(1.75rem, 4vw, 2.5rem);
+		font-size: clamp(2rem, 5vw, 2.75rem);
 	}
 
-	.body {
-		margin: 1rem 0;
-		max-width: 42rem;
+	.head p {
+		margin: 0;
+		color: var(--muted);
 		font-family: var(--font-body);
-		color: var(--fg);
-		line-height: 1.7;
+	}
+
+	.cal-embed {
+		width: 100%;
+		min-height: 700px;
+		height: 80vh;
+		margin: 1rem 0 0;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		overflow: hidden;
+		background: var(--bg);
+	}
+
+	/* On mobile, the embed's own slots-view kicks in via
+	   useSlotsViewOnSmallScreen; let it size itself naturally. */
+	@media (max-width: 40rem) {
+		.cal-embed {
+			min-height: 600px;
+			height: auto;
+		}
 	}
 
 	.back {
 		margin-top: 2rem;
-		font-family: var(--font-display);
+		font-family: var(--font-body);
 	}
 
 	.back a {
