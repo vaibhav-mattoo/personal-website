@@ -32,6 +32,45 @@ const items = [
 	</nav>
 </Base>
 
+<script is:inline>
+	(function () {
+		const calOrigin = 'https://app.cal.com';
+		const embedJs = calOrigin + '/embed/embed.js';
+		let warmed = false;
+
+		function warmCal() {
+			if (warmed) return;
+			warmed = true;
+
+			const hints = [
+				{ rel: 'preconnect', href: calOrigin },
+				{ rel: 'preconnect', href: calOrigin, crossOrigin: '' },
+				{ rel: 'preload', href: embedJs, as: 'script', crossOrigin: '' },
+			];
+
+			for (const hint of hints) {
+				const link = document.createElement('link');
+				link.rel = hint.rel;
+				link.href = hint.href;
+				if (hint.as) link.as = hint.as;
+				if (hint.crossOrigin !== undefined) link.crossOrigin = hint.crossOrigin;
+				document.head.appendChild(link);
+			}
+		}
+
+		function maybeWarm(event) {
+			const tile = event.target.closest('a[href="/tasks/calendar/"]');
+			if (tile) warmCal();
+		}
+
+		const tiles = document.querySelector('.tiles');
+		if (!tiles) return;
+
+		tiles.addEventListener('mouseover', maybeWarm);
+		tiles.addEventListener('focusin', maybeWarm);
+	})();
+</script>
+
 <style>
 	.head {
 		margin: 2rem 0 1rem;
