@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     depends_on:
       - waline
+    networks:
+      - default
+      - shared
 
   waline:
     image: lizheming/waline:latest
@@ -26,6 +29,12 @@ services:
       SMTP_USER: ${WALINE_SMTP_USER:-}
       SMTP_PASS: ${WALINE_SMTP_PASS:-}
       DISABLE_REGION: 'true'
+
+networks:
+  default:
+  shared:
+    external: true
+    name: vmattoo-shared
 
 volumes:
   waline-data:

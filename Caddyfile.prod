@@ -51,3 +51,12 @@ comments.{$SITE_DOMAIN} {
 		format json
 	}
 }
+
+tasks.{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy fizzy-web:80
+	log {
+		output stdout
+		format json
+	}
+}

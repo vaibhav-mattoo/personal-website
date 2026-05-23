@@ -1,0 +1,54 @@
+---
+import Base from '../../layouts/Base.astro';
+import TerminalPrompt from '../../components/TerminalPrompt.astro';
+---
+
+<Base title="Paper reading queue">
+	<header class="head">
+		<h1>Paper reading queue</h1>
+	</header>
+
+	<TerminalPrompt command="cat reading-queue.txt" />
+
+	<p class="body">
+		Not yet populated. This will list papers I'm currently reading once that workflow is
+		wired up.
+	</p>
+
+	<p class="back"><a href="/tasks/">← back to tasks</a></p>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1rem;
+	}
+
+	.head h1 {
+		margin: 0;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(1.75rem, 4vw, 2.5rem);
+	}
+
+	.body {
+		margin: 1rem 0;
+		max-width: 42rem;
+		font-family: var(--font-body);
+		color: var(--fg);
+		line-height: 1.7;
+	}
+
+	.back {
+		margin-top: 2rem;
+		font-family: var(--font-display);
+	}
+
+	.back a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.back a:hover {
+		color: var(--accent);
+	}
+</style>

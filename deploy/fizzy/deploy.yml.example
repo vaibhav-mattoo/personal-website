@@ -1,0 +1,40 @@
+# Copy to <your-fizzy-fork>/config/deploy.yml and fill in placeholders.
+
+service: fizzy
+image: <REGISTRY-USERNAME>/fizzy
+
+servers:
+  web:
+    hosts:
+      - <VM-IP>
+    options:
+      network: vmattoo-shared
+      network-alias: fizzy-web
+
+# Disable Kamal's own proxy — Caddy in the personal-website stack handles
+# TLS and routing for tasks.vmattoo.dev.
+proxy: false
+
+ssh:
+  user: <SSH-USER>
+
+registry:
+  username: <REGISTRY-USERNAME>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    BASE_URL: https://tasks.vmattoo.dev
+    MAILER_FROM_ADDRESS: noreply@vmattoo.dev
+    MULTI_TENANT: "false"
+  secret:
+    - SECRET_KEY_BASE
+    - VAPID_PUBLIC_KEY
+    - VAPID_PRIVATE_KEY
+
+builder:
+  arch: amd64
+
+volumes:
+  - "fizzy_storage:/rails/storage"

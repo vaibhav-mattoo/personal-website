@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import TerminalPrompt from '../../components/TerminalPrompt.astro';
+import SectionTile from '../../components/SectionTile.astro';
+
+const items = [
+	{ label: 'Current tasks', href: 'https://tasks.vmattoo.dev/', external: true },
+	{ label: 'Paper reading queue', href: '/tasks/papers/', external: false },
+	{ label: 'Calendar', href: '/tasks/calendar/', external: false },
+];
+---
+
+<Base title="Tasks">
+	<header class="head">
+		<h1>Tasks</h1>
+		<p>Kanban for now, papers I'm reading, and what's on the calendar.</p>
+	</header>
+
+	<TerminalPrompt command="ls tasks/" />
+
+	<nav class="tiles">
+		{
+			items.map((i) =>
+				i.external ? (
+					<a class="tile-ext" href={i.href} target="_blank" rel="noopener">
+						{i.label} ↗
+					</a>
+				) : (
+					<SectionTile label={i.label} href={i.href} />
+				),
+			)
+		}
+	</nav>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1rem;
+	}
+
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+
+	.head p {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+		gap: 0.5rem;
+		margin: 0.25rem 0 1rem;
+	}
+
+	.tile-ext {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.55rem 0.7rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		font-family: var(--font-display);
+		font-size: 0.82rem;
+		color: var(--fg);
+		text-decoration: none;
+		transition:
+			border-color 0.15s,
+			color 0.15s,
+			background-color 0.15s;
+	}
+
+	.tile-ext:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--accent-soft);
+	}
+</style>

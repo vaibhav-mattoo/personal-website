@@ -76,6 +76,15 @@ install_docker() {
 	systemctl enable --now docker
 }
 
+ensure_shared_network() {
+	if docker network inspect vmattoo-shared >/dev/null 2>&1; then
+		log "Shared Docker network vmattoo-shared already exists"
+		return
+	fi
+	log "Creating shared Docker network: vmattoo-shared"
+	docker network create vmattoo-shared
+}
+
 configure_firewall() {
 	local added=0
 	if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
@@ -169,6 +178,7 @@ main() {
 
 	install_packages
 	install_docker
+	ensure_shared_network
 	ensure_repo
 
 	local ip ufw_added=0
