@@ -1,0 +1,125 @@
+---
+import Base from '../../../layouts/Base.astro';
+import TerminalPrompt from '../../../components/TerminalPrompt.astro';
+import { publicDocuments } from '../../../config/public-documents';
+---
+
+<Base title="Documents">
+	<header class="head">
+		<h1>Documents</h1>
+		<p>Documents I've decided to share. Click any tile to open the source in a new tab.</p>
+	</header>
+
+	<TerminalPrompt command="ls documents/" />
+
+	{
+		publicDocuments.length === 0 ? (
+			<p class="empty">No documents yet.</p>
+		) : (
+			<nav class="tiles">
+				{publicDocuments.map((d) => (
+					<a class="tile" href={d.url} target="_blank" rel="noopener">
+						<span class="tile__title">{d.title} ↗</span>
+						{d.date && <span class="tile__meta">{d.date}</span>}
+						{d.description && <span class="tile__desc">{d.description}</span>}
+					</a>
+				))}
+			</nav>
+		)
+	}
+
+	<p class="back"><a href="/notes/">← back to notes</a></p>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1rem;
+	}
+
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+
+	.head p {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+
+	.empty {
+		color: var(--muted);
+		font-style: italic;
+		margin: 1rem 0;
+	}
+
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+		gap: 0.5rem;
+		margin: 0.25rem 0 1rem;
+	}
+
+	.tile {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.7rem 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		color: var(--fg);
+		text-decoration: none;
+		transition:
+			border-color 0.15s,
+			color 0.15s,
+			background-color 0.15s;
+	}
+
+	.tile:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--accent-soft);
+	}
+
+	.tile__title {
+		font-family: var(--font-display);
+		font-size: 0.9rem;
+		font-weight: 600;
+	}
+
+	.tile__meta {
+		font-family: var(--font-display);
+		font-size: 0.75rem;
+		color: var(--muted);
+	}
+
+	.tile:hover .tile__meta {
+		color: var(--accent);
+	}
+
+	.tile__desc {
+		font-family: var(--font-body);
+		font-size: 0.82rem;
+		color: var(--muted);
+	}
+
+	.tile:hover .tile__desc {
+		color: var(--accent);
+	}
+
+	.back {
+		margin-top: 2rem;
+		font-family: var(--font-display);
+	}
+
+	.back a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.back a:hover {
+		color: var(--accent);
+	}
+</style>
