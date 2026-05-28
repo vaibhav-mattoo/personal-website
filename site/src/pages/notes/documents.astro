@@ -1,0 +1,72 @@
+---
+import { statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import Base from '../../layouts/Base.astro';
+import TerminalPrompt from '../../components/TerminalPrompt.astro';
+import { publicDocuments, stirlingLoginUrl } from '../../config/public-documents';
+import '../../styles/documents-page.css';
+
+const publicDir = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	'../../../public/documents',
+);
+
+const formatBytes = (bytes: number): string => {
+	if (bytes < 1024) return `${bytes} B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const documents = publicDocuments.map((doc) => {
+	let size: string | null = null;
+	try {
+		const stat = statSync(path.join(publicDir, doc.file));
+		size = formatBytes(stat.size);
+	} catch {
+		// File missing — tile renders without size; build still succeeds.
+	}
+	return { ...doc, size };
+});
+---
+
+<Base title="Documents">
+	<header class="head">
+		<h1>Documents</h1>
+		<p>PDFs I've decided to share publicly. Click to open in a new tab.</p>
+	</header>
+
+	<TerminalPrompt command="ls documents/" />
+
+	{
+		documents.length === 0 ? (
+			<p class="empty">No documents yet.</p>
+		) : (
+			<nav class="tiles">
+				{documents.map((d) => (
+					<a
+						class="tile"
+						href={`/documents/${d.file}`}
+						target="_blank"
+						rel="noopener"
+					>
+						<div class="tile__row">
+							<span class="tile__title">{d.title} ↗</span>
+							<span class="tile__meta">
+								{d.date}
+								{d.size && ` · ${d.size}`}
+							</span>
+						</div>
+						{d.description && <span class="tile__desc">{d.description}</span>}
+					</a>
+				))}
+			</nav>
+		)
+	}
+
+	<p class="login">
+		<a href={stirlingLoginUrl} target="_blank" rel="noopener">Stirling login ↗</a>
+	</p>
+
+	<p class="back"><a href="/notes/">← back to notes</a></p>
+</Base>
