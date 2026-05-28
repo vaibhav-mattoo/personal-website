@@ -154,4 +154,4 @@ never blocks the site.
 1–6 are the site itself, each a pure browser/build checkpoint with no
 infrastructure. 7–8 wrap it in the edge. 9 is optional and additive. 10–12 are
 automation and operations around an already-working system. At no point are you
-debugging two new layers at once.
+debugging two new layers at once..
