@@ -132,6 +132,39 @@ ensure_env_file() {
 	fi
 }
 
+ensure_stirling_credentials() {
+	local env_file="${DEPLOY_DIR}/.env"
+
+	if [[ ! -f "${env_file}" ]]; then
+		log "ERROR: ${env_file} missing; ensure_env_file must run first" >&2
+		return 1
+	fi
+
+	if ! grep -q '^STIRLING_ADMIN_USERNAME=' "${env_file}"; then
+		echo 'STIRLING_ADMIN_USERNAME=admin' >>"${env_file}"
+		log "Set STIRLING_ADMIN_USERNAME=admin in ${env_file}"
+	fi
+
+	if ! grep -q '^STIRLING_ADMIN_PASSWORD=' "${env_file}"; then
+		local pw
+		pw=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+		echo "STIRLING_ADMIN_PASSWORD=${pw}" >>"${env_file}"
+		chmod 0600 "${env_file}"
+		log ""
+		log "============================================================"
+		log "Stirling-PDF initial admin credentials generated:"
+		log "  URL:      https://pdfs.${SITE_DOMAIN}/"
+		log "  Username: admin"
+		log "  Password: ${pw}"
+		log ""
+		log "  SAVE THIS PASSWORD NOW — it will not be shown again."
+		log "  It is also stored in ${env_file} (mode 0600)."
+		log "  Log in once, then change it via the Stirling-PDF UI."
+		log "============================================================"
+		log ""
+	fi
+}
+
 ensure_waline_db() {
 	local volume="${COMPOSE_PROJECT}_waline-data"
 
@@ -199,6 +232,7 @@ main() {
 
 	ensure_env_file
 	ensure_waline_db
+	ensure_stirling_credentials
 	write_state "${ip}" "${ufw_added}"
 	deploy_stack
 

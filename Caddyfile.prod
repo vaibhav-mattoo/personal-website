@@ -60,3 +60,16 @@ tasks.{$SITE_DOMAIN} {
 		format json
 	}
 }
+
+pdfs.{$SITE_DOMAIN} {
+	encode zstd gzip
+	header X-Robots-Tag "noindex, nofollow, noarchive"
+	request_body {
+		max_size 256MB
+	}
+	reverse_proxy stirling-pdf:8080
+	log {
+		output stdout
+		format json
+	}
+}
