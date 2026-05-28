@@ -16,6 +16,17 @@ const notes = (await getCollection('notes')).sort(
 		</p>
 	</header>
 
+	<nav class="docs-nav">
+		<a
+			class="tile-ext"
+			href="https://pdfs.vmattoo.dev/"
+			target="_blank"
+			rel="noopener"
+		>
+			Documents ↗
+		</a>
+	</nav>
+
 	<ul class="list">
 		{
 			notes.map((note) => (
@@ -89,5 +100,32 @@ const notes = (await getCollection('notes')).sort(
 	.list__summary {
 		font-family: var(--font-body);
 		color: var(--muted);
+	}
+
+	.docs-nav {
+		margin: 0.5rem 0 1rem;
+	}
+
+	.docs-nav .tile-ext {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.55rem 0.9rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		font-family: var(--font-display);
+		font-size: 0.82rem;
+		color: var(--fg);
+		text-decoration: none;
+		transition:
+			border-color 0.15s,
+			color 0.15s,
+			background-color 0.15s;
+	}
+
+	.docs-nav .tile-ext:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--accent-soft);
 	}
 </style>
