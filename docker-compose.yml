@@ -30,32 +30,6 @@ services:
       SMTP_PASS: ${WALINE_SMTP_PASS:-}
       DISABLE_REGION: 'true'
 
-  stirling-pdf:
-    image: stirlingtools/stirling-pdf:latest
-    restart: unless-stopped
-    environment:
-      DOCKER_ENABLE_SECURITY: "true"
-      SECURITY_ENABLELOGIN: "true"
-      SECURITY_INITIALLOGIN_USERNAME: ${STIRLING_ADMIN_USERNAME}
-      SECURITY_INITIALLOGIN_PASSWORD: ${STIRLING_ADMIN_PASSWORD}
-      SYSTEM_ENABLEANALYTICS: "false"
-      SYSTEM_DEFAULTLOCALE: "en_US"
-      UI_APPNAME: "Stirling PDF"
-      LANGS: "en_US"
-    volumes:
-      - stirling-configs:/configs
-      - stirling-custom-files:/customFiles
-      - stirling-logs:/logs
-      - stirling-tessdata:/usr/share/tessdata
-    networks:
-      - default
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-
 networks:
   default:
   shared:
@@ -64,7 +38,3 @@ networks:
 
 volumes:
   waline-data:
-  stirling-configs:
-  stirling-custom-files:
-  stirling-logs:
-  stirling-tessdata:

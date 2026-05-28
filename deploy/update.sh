@@ -27,39 +27,6 @@ ensure_shared_network() {
 	docker network create vmattoo-shared
 }
 
-ensure_stirling_credentials() {
-	local env_file="${DEPLOY_DIR}/.env"
-
-	if [[ ! -f "${env_file}" ]]; then
-		log "ERROR: ${env_file} missing; run deploy/bootstrap.sh first" >&2
-		return 1
-	fi
-
-	if ! grep -q '^STIRLING_ADMIN_USERNAME=' "${env_file}"; then
-		echo 'STIRLING_ADMIN_USERNAME=admin' >>"${env_file}"
-		log "Set STIRLING_ADMIN_USERNAME=admin in ${env_file}"
-	fi
-
-	if ! grep -q '^STIRLING_ADMIN_PASSWORD=' "${env_file}"; then
-		local pw
-		pw=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
-		echo "STIRLING_ADMIN_PASSWORD=${pw}" >>"${env_file}"
-		chmod 0600 "${env_file}"
-		log ""
-		log "============================================================"
-		log "Stirling-PDF initial admin credentials generated:"
-		log "  URL:      https://pdfs.${SITE_DOMAIN}/"
-		log "  Username: admin"
-		log "  Password: ${pw}"
-		log ""
-		log "  SAVE THIS PASSWORD NOW — it will not be shown again."
-		log "  It is also stored in ${env_file} (mode 0600)."
-		log "  Log in once, then change it via the Stirling-PDF UI."
-		log "============================================================"
-		log ""
-	fi
-}
-
 if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 	printf 'Run as root: sudo %s\n' "$0" >&2
 	exit 1
@@ -79,7 +46,6 @@ git reset --hard "origin/${REPO_REF}"
 
 export SITE_DOMAIN
 ensure_shared_network
-ensure_stirling_credentials
 log "Rebuilding and restarting (domain: ${SITE_DOMAIN})"
 docker compose -p "${COMPOSE_PROJECT}" "${COMPOSE_FILES[@]}" up -d --build --remove-orphans
 
