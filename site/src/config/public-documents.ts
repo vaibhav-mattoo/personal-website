@@ -30,6 +30,12 @@ export const publicDocuments: PublicDocument[] = [
 	  title: 'Algorithmic game theory',
 	  description: 'My annotations of the book "Algorithmic game theory"',
 	  date: 'May 2026',
-	  url: 'https://web.goodnotes.com/s/5NUwlIiQHp5SFoKXEUb5BV#page-1',
+	  url: 'https://share.goodnotes.com/s/5NUwlIiQHp5SFoKXEUb5BV',
+	},
+	{
+	  title: 'Optimization for data analysis',
+	  description: 'My annotations of the book "Optimization for data analysis"',
+	  date: 'May 2026',
+	  url: 'https://share.goodnotes.com/s/xN94zQTWDdierFbQEHihYK',
 	},
 ];
