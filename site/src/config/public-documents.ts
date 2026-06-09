@@ -38,4 +38,10 @@ export const publicDocuments: PublicDocument[] = [
 	  date: 'May 2026',
 	  url: 'https://share.goodnotes.com/s/xN94zQTWDdierFbQEHihYK',
 	},
+	{
+	  title: 'Multiagent Systems: Algorithmic, Game-Theoretic and Logical Foundations',
+	  description: 'My annotations of the book "Multiagent Systems"',
+	  date: 'May 2026',
+	  url: 'https://share.goodnotes.com/s/CNczhr3DIoMhO0XhBaZ2Io',
+	},
 ];
