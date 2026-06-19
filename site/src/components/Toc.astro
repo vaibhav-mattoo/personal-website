@@ -30,6 +30,28 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 	if (window.matchMedia('(min-width: 64rem)').matches) {
 		document.querySelector('.toc__details')?.setAttribute('open', '');
 	}
+
+	const tocLinks = document.querySelectorAll('.toc__item a');
+	const slugToItem = new Map<string, Element>();
+	tocLinks.forEach((a) => {
+		const href = a.getAttribute('href');
+		if (href) slugToItem.set(href.slice(1), a.closest('.toc__item')!);
+	});
+
+	const observer = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				const item = slugToItem.get(entry.target.id);
+				if (item) item.classList.toggle('toc__item--active', entry.isIntersecting);
+			}
+		},
+		{ rootMargin: '0px 0px -60% 0px' },
+	);
+
+	slugToItem.forEach((_, id) => {
+		const el = document.getElementById(id);
+		if (el) observer.observe(el);
+	});
 </script>
 
 <style>
@@ -69,6 +91,11 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 	.toc__item--d3 a {
 		padding-left: 1.5rem;
 		font-size: 0.85rem;
+	}
+
+	.toc__item--active > a {
+		color: var(--accent);
+		border-left-color: var(--accent);
 	}
 
 	.toc__item a:hover {
