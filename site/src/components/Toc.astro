@@ -31,27 +31,24 @@ const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 		document.querySelector('.toc__details')?.setAttribute('open', '');
 	}
 
-	const tocLinks = document.querySelectorAll('.toc__item a');
-	const slugToItem = new Map<string, Element>();
-	tocLinks.forEach((a) => {
-		const href = a.getAttribute('href');
-		if (href) slugToItem.set(href.slice(1), a.closest('.toc__item')!);
+	const tocItems = Array.from(document.querySelectorAll('.toc__item a')).map((a) => {
+		const id = a.getAttribute('href')!.slice(1);
+		return { id, item: a.closest('.toc__item')! };
 	});
 
-	const observer = new IntersectionObserver(
-		(entries) => {
-			for (const entry of entries) {
-				const item = slugToItem.get(entry.target.id);
-				if (item) item.classList.toggle('toc__item--active', entry.isIntersecting);
-			}
-		},
-		{ rootMargin: '0px 0px -60% 0px' },
-	);
+	function updateActive() {
+		let activeIndex = 0;
+		for (let i = 0; i < tocItems.length; i++) {
+			const el = document.getElementById(tocItems[i].id);
+			if (el && el.getBoundingClientRect().top <= 100) activeIndex = i;
+		}
+		tocItems.forEach(({ item }, i) =>
+			item.classList.toggle('toc__item--active', i === activeIndex),
+		);
+	}
 
-	slugToItem.forEach((_, id) => {
-		const el = document.getElementById(id);
-		if (el) observer.observe(el);
-	});
+	window.addEventListener('scroll', updateActive, { passive: true });
+	updateActive();
 </script>
 
 <style>
