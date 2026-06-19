@@ -67,12 +67,13 @@ const backlinks = await getBacklinks(note.id);
 <style>
 	.note {
 		margin: 2rem 0;
-		max-width: 56rem;
+		max-width: 64rem;
+		padding-left: clamp(0rem, 10vw - 4rem, 12rem);
 	}
 
 	.note-head {
 		margin: 0 0 1.5rem;
-		max-width: 42rem;
+		max-width: 48rem;
 	}
 
 	.note-head h1 {
@@ -111,12 +112,12 @@ const backlinks = await getBacklinks(note.id);
 	}
 
 	.prose {
-		max-width: 42rem;
+		max-width: 48rem;
 	}
 
 	.note__back {
 		margin-top: 2rem;
-		max-width: 42rem;
+		max-width: 48rem;
 		font-family: var(--font-display);
 	}
 
