@@ -8,6 +8,8 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeFigure from 'rehype-figure';
+import remarkWikilink from './src/plugins/remark-wikilink.mjs';
+import { findBrokenEdges } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
 
@@ -61,9 +63,31 @@ export default defineConfig({
 				},
 			},
 		},
+		{
+			// Same check as `npm run links`, but as a build-time warning rather
+			// than a failure — broken wikilinks/relations shouldn't block a
+			// deploy, just get flagged. Run `npm run links` to fail on them.
+			name: 'link-report',
+			hooks: {
+				'astro:build:done': async () => {
+					try {
+						const broken = await findBrokenEdges();
+						if (broken.length > 0) {
+							console.warn(`\n[link-report] ${broken.length} broken link(s):`);
+							for (const edge of broken) {
+								console.warn(`  ${edge.source} -> ${edge.target}`);
+							}
+							console.warn('[link-report] run `npm run links` for a failing check.\n');
+						}
+					} catch (err) {
+						console.warn('[link-report] skipped:', err);
+					}
+				},
+			},
+		},
 	],
 	markdown: {
-		remarkPlugins: [remarkMath],
+		remarkPlugins: [remarkWikilink, remarkMath],
 		rehypePlugins: [
 			rehypeKatex,
 			[

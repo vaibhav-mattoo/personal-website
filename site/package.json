@@ -10,6 +10,7 @@
     "build": "astro build",
     "check": "astro check",
     "preview": "astro preview",
+    "links": "node scripts/link-report.mjs",
     "astro": "astro"
   },
   "dependencies": {
