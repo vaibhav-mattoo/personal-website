@@ -92,6 +92,8 @@ test('buildTopicTree: nests topics by path when no parent is declared', () => {
 		byId.get('research').children.map((n) => n.id),
 		['research/cheminformatics'],
 	);
+	assert.equal(byId.get('research/cheminformatics').parent, 'research');
+	assert.equal(byId.get('research').parent, undefined);
 });
 
 test('buildTopicTree: a declared parent overrides the path-derived one', () => {
@@ -108,6 +110,7 @@ test('buildTopicTree: a declared parent overrides the path-derived one', () => {
 		byId.get('research').children.map((n) => n.id),
 		['scratch-area'],
 	);
+	assert.equal(byId.get('scratch-area').parent, 'research');
 });
 
 test('buildTopicTree: a tag with no topic file still gets a node — nothing is dropped', () => {

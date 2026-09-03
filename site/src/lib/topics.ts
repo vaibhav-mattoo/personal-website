@@ -38,6 +38,8 @@ export type TopicNode = {
 	hidden: boolean;
 	/** True when no topic file exists for this id — title/kind are synthesized. */
 	synthesized: boolean;
+	/** The resolved parent id (declared `parent`, or the path-derived fallback), if any. */
+	parent?: string;
 	children: TopicNode[];
 	/** Every note tagged with this node's id or any deeper path under it. */
 	notes: NoteEntry[];
@@ -166,6 +168,7 @@ export function buildTopicTree(topicEntries: TopicEntry[], noteEntries: NoteEntr
 				? declaredParent
 				: parentOf(id);
 		if (parentId && nodeById.has(parentId)) {
+			node.parent = parentId;
 			nodeById.get(parentId)!.children.push(node);
 		} else {
 			roots.push(node);

@@ -25,6 +25,7 @@
     "astro": "^6.3.5",
     "astro-expressive-code": "^0.42.0",
     "astro-mermaid": "^2.0.1",
+    "force-graph": "^1.51.4",
     "katex": "^0.16.47",
     "medium-zoom": "^1.1.0",
     "pagefind": "^1.5.2",

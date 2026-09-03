@@ -1,11 +1,15 @@
 import { getCollection } from 'astro:content';
+import { buildGraphData, type GraphData } from './graph';
 import { buildTopicTree, type NoteEntry, type TopicEntry, type TopicTree } from './topics';
 import { getPublicVault } from './vault';
 
 // Memoized at module scope, same rationale as vault.ts: one Astro build
-// loads this module once, so every page shares the same computed tree/notes.
+// loads this module once, so every page shares the same computed
+// tree/notes/graph instead of recomputing it per page (graph.json, graph.astro,
+// and every note page's local-graph rail all ask for the same data).
 let cachedTree: TopicTree | null = null;
 let cachedNotes: NoteEntry[] | null = null;
+let cachedGraph: GraphData | null = null;
 
 async function loadNoteEntries(): Promise<NoteEntry[]> {
 	if (!cachedNotes) {
@@ -49,4 +53,14 @@ export async function getTopicTree(): Promise<TopicTree> {
 	const noteEntries = await loadNoteEntries();
 	cachedTree = buildTopicTree(topicEntries, noteEntries);
 	return cachedTree;
+}
+
+/** The full public graph (notes + topics), memoized — see graph.ts. */
+export async function getGraphData(): Promise<GraphData> {
+	if (!cachedGraph) {
+		const { entries, index } = await getPublicVault();
+		const tree = await getTopicTree();
+		cachedGraph = buildGraphData(entries, index, tree);
+	}
+	return cachedGraph;
 }
