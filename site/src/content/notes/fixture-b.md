@@ -2,7 +2,7 @@
 title: Fixture B
 date: 2026-01-02
 summary: Has an alias so fixture-a can link to it without using its id.
-tags: [fixture]
+tags: [fixture, research/cheminformatics/enzymes]
 aliases: [fb-alias]
 ---
 

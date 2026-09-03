@@ -1,23 +1,30 @@
 #!/usr/bin/env node
-// Standalone link checker: reads notes straight off disk (no Astro runtime
-// needed, since links.ts is pure) and prints every broken edge in the link
-// graph. Run directly with `npm run links` (exits 1 if anything is broken),
-// or from astro.config.mjs's build hook, where it only warns.
+// Standalone content checker: reads notes and topics straight off disk (no
+// Astro runtime needed, since links.ts/topics.ts are pure) and reports:
+//   - broken note-to-note links (wikilinks, markdown links, relations)
+//   - topic `sequence` entries that don't match any real note
+//   - topic `parent` values that don't match any real topic
+//   - tags used by notes with no corresponding topic file (informational)
+// Run directly with `npm run links` (exits 1 if anything but the last is
+// found), or from astro.config.mjs's build hook, where it only warns.
 //
 // Frontmatter here is parsed with a tiny hand-rolled reader rather than a
 // YAML library: nothing in site/package.json currently depends on one, and
-// CLAUDE.md says not to add a dependency without asking. Note frontmatter in
-// this repo is a flat set of scalars, flow arrays (`tags: [a, b]`), and
-// block lists of scalars/small maps (`relations:\n  - type: x\n    target: y`)
-// — this parser covers exactly that shape, not arbitrary YAML.
+// CLAUDE.md says not to add a dependency without asking. Note/topic
+// frontmatter in this repo is a flat set of scalars, flow arrays
+// (`tags: [a, b]`), and block lists of scalars/small maps
+// (`relations:\n  - type: x\n    target: y`) — this parser covers exactly
+// that shape, not arbitrary YAML.
 
-import { readFile, readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildIndex } from '../src/lib/links.ts';
+import { buildTopicTree, orderNotes, unresolvedParents, untopicedTags } from '../src/lib/topics.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const notesDir = path.resolve(__dirname, '../src/content/notes');
+const topicsDir = path.resolve(__dirname, '../src/content/topics');
 
 function parseScalar(raw) {
 	const v = raw.trim();
@@ -101,13 +108,35 @@ function parseFrontmatter(raw) {
 	return { data: parseFrontmatterBlock(match[1]), body: match[2] };
 }
 
-async function loadEntries() {
-	const files = (await readdir(notesDir)).filter((f) => /\.(md|mdx)$/.test(f));
+/** Recursively lists .md/.mdx files under `dir`, returning ids relative to `dir` (slash-joined, extension stripped) — matches Astro's glob loader id scheme. */
+async function walkMarkdownFiles(dir, baseDir = dir) {
+	let entries;
+	try {
+		entries = await readdir(dir, { withFileTypes: true });
+	} catch (err) {
+		if (err.code === 'ENOENT') return [];
+		throw err;
+	}
+
+	const out = [];
+	for (const entry of entries) {
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) {
+			out.push(...(await walkMarkdownFiles(full, baseDir)));
+		} else if (/\.(md|mdx)$/.test(entry.name)) {
+			const relative = path.relative(baseDir, full).split(path.sep).join('/');
+			out.push({ id: relative.replace(/\.(md|mdx)$/, ''), file: full });
+		}
+	}
+	return out;
+}
+
+async function loadNoteEntries() {
+	const files = await walkMarkdownFiles(notesDir);
 	const entries = [];
-	for (const file of files) {
-		const raw = await readFile(path.join(notesDir, file), 'utf8');
+	for (const { id, file } of files) {
+		const raw = await readFile(file, 'utf8');
 		const { data, body } = parseFrontmatter(raw);
-		const id = file.replace(/\.(md|mdx)$/, '');
 		entries.push({
 			id,
 			title: typeof data.title === 'string' ? data.title : id,
@@ -117,30 +146,112 @@ async function loadEntries() {
 			share: typeof data.share === 'string' ? data.share : undefined,
 			aliases: Array.isArray(data.aliases) ? data.aliases : [],
 			relations: Array.isArray(data.relations) ? data.relations : [],
+			date: typeof data.date === 'string' ? new Date(data.date) : new Date(0),
+			summary: typeof data.summary === 'string' ? data.summary : undefined,
 			body,
 		});
 	}
 	return entries;
 }
 
-export async function findBrokenEdges() {
-	const entries = await loadEntries();
-	const { edges } = buildIndex(entries);
-	return edges.filter((edge) => edge.broken);
+async function loadTopicEntries() {
+	const files = await walkMarkdownFiles(topicsDir);
+	const entries = [];
+	for (const { id, file } of files) {
+		const raw = await readFile(file, 'utf8');
+		const { data } = parseFrontmatter(raw);
+		entries.push({
+			id,
+			title: typeof data.title === 'string' ? data.title : id,
+			summary: typeof data.summary === 'string' ? data.summary : undefined,
+			parent: typeof data.parent === 'string' ? data.parent : undefined,
+			kind: typeof data.kind === 'string' ? data.kind : 'area',
+			sequence: Array.isArray(data.sequence) ? data.sequence : [],
+			hidden: data.hidden === true,
+		});
+	}
+	return entries;
+}
+
+/**
+ * Runs every check and returns the raw findings — used by both the CLI
+ * entrypoint below and astro.config.mjs's build-time warning hook.
+ */
+export async function runLinkReport() {
+	const noteEntries = await loadNoteEntries();
+	const topicEntries = await loadTopicEntries();
+
+	const { edges } = buildIndex(noteEntries);
+	const brokenLinks = edges.filter((edge) => edge.broken);
+
+	// Sequence entries are authoritative (see topics.ts): a sequence naming a
+	// note that exists but isn't tagged into this topic still renders there,
+	// so that's reported separately (untaggedSequences, informational) from
+	// a sequence entry that names no real note at all (brokenSequences).
+	const tree = buildTopicTree(topicEntries, noteEntries);
+	const brokenSequences = [];
+	const untaggedSequences = [];
+	for (const topic of topicEntries) {
+		const taggedNotes = tree.byId.get(topic.id)?.notes ?? [];
+		const { unresolved, untagged } = orderNotes(topic, noteEntries, taggedNotes);
+		for (const missing of unresolved) {
+			brokenSequences.push({ topic: topic.id, missing });
+		}
+		for (const id of untagged) {
+			untaggedSequences.push({ topic: topic.id, id });
+		}
+	}
+
+	const brokenParents = unresolvedParents(topicEntries);
+	const untopiced = untopicedTags(topicEntries, noteEntries);
+
+	return { brokenLinks, brokenSequences, brokenParents, untopiced, untaggedSequences };
+}
+
+function printReport({ brokenLinks, brokenSequences, brokenParents, untopiced, untaggedSequences }) {
+	for (const edge of brokenLinks) {
+		console.log(`${edge.source} -> ${edge.target}`);
+	}
+	for (const { topic, missing } of brokenSequences) {
+		console.log(`topic:${topic} -> ${missing} (sequence, broken)`);
+	}
+	for (const { id, parent } of brokenParents) {
+		console.log(`topic:${id} -> ${parent} (parent)`);
+	}
+
+	if (untaggedSequences.length > 0) {
+		console.log('\nSequence entries naming a real note not tagged into that topic (informational):');
+		for (const { topic, id } of untaggedSequences) {
+			console.log(`  topic:${topic} -> ${id}`);
+		}
+	}
+	if (untopiced.length > 0) {
+		console.log(`\nTags with no topic file (informational): ${untopiced.join(', ')}`);
+	}
+}
+
+function isFailing({ brokenLinks, brokenSequences, brokenParents }) {
+	return brokenLinks.length + brokenSequences.length + brokenParents.length > 0;
 }
 
 async function main() {
-	const broken = await findBrokenEdges();
-	for (const edge of broken) {
-		console.log(`${edge.source} -> ${edge.target}`);
-	}
-	if (broken.length > 0) {
-		console.error(
-			`\n${broken.length} broken link${broken.length === 1 ? '' : 's'} found.`,
-		);
-		process.exitCode = 1;
+	const strict = process.argv.includes('--strict');
+	const report = await runLinkReport();
+	printReport(report);
+
+	if (isFailing(report)) {
+		const count =
+			report.brokenLinks.length + report.brokenSequences.length + report.brokenParents.length;
+		const message = `\n${count} broken reference${count === 1 ? '' : 's'} found.`;
+		if (strict) {
+			console.error(message);
+			process.exitCode = 1;
+		} else {
+			console.warn(message);
+			console.warn('(non-strict: exiting 0 — pass --strict to fail on this)');
+		}
 	} else {
-		console.log('No broken links.');
+		console.log('No broken links, sequence entries, or topic parents.');
 	}
 }
 

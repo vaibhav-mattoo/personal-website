@@ -2,7 +2,7 @@
 title: Fixture A
 date: 2026-01-01
 summary: Exercises wikilinks, an alias, an anchor link, and a broken link.
-tags: [fixture]
+tags: [fixture, research/cheminformatics]
 relations:
   - type: cites
     target: fixture-c

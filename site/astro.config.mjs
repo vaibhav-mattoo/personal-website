@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeFigure from 'rehype-figure';
 import remarkWikilink from './src/plugins/remark-wikilink.mjs';
-import { findBrokenEdges } from './scripts/link-report.mjs';
+import { runLinkReport } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
 
@@ -64,20 +64,44 @@ export default defineConfig({
 			},
 		},
 		{
-			// Same check as `npm run links`, but as a build-time warning rather
-			// than a failure — broken wikilinks/relations shouldn't block a
-			// deploy, just get flagged. Run `npm run links` to fail on them.
+			// Same checks as `npm run links`, but as a build-time warning rather
+			// than a failure — broken wikilinks/relations/sequences shouldn't
+			// block a deploy, just get flagged. Run `npm run links` to fail on
+			// them.
 			name: 'link-report',
 			hooks: {
 				'astro:build:done': async () => {
 					try {
-						const broken = await findBrokenEdges();
-						if (broken.length > 0) {
-							console.warn(`\n[link-report] ${broken.length} broken link(s):`);
-							for (const edge of broken) {
+						const { brokenLinks, brokenSequences, brokenParents, untopiced, untaggedSequences } =
+							await runLinkReport();
+						const brokenCount = brokenLinks.length + brokenSequences.length + brokenParents.length;
+
+						if (brokenCount > 0) {
+							console.warn(`\n[link-report] ${brokenCount} broken reference(s):`);
+							for (const edge of brokenLinks) {
 								console.warn(`  ${edge.source} -> ${edge.target}`);
 							}
-							console.warn('[link-report] run `npm run links` for a failing check.\n');
+							for (const { topic, missing } of brokenSequences) {
+								console.warn(`  topic:${topic} -> ${missing} (sequence, broken)`);
+							}
+							for (const { id, parent } of brokenParents) {
+								console.warn(`  topic:${id} -> ${parent} (parent)`);
+							}
+							console.warn('[link-report] run `npm run links:strict` for a failing check.');
+						}
+						if (untaggedSequences.length > 0) {
+							console.warn('[link-report] sequence entries naming a note not tagged into that topic:');
+							for (const { topic, id } of untaggedSequences) {
+								console.warn(`  topic:${topic} -> ${id}`);
+							}
+						}
+						if (untopiced.length > 0) {
+							console.warn(
+								`[link-report] tags with no topic file: ${untopiced.join(', ')}`,
+							);
+						}
+						if (brokenCount > 0 || untopiced.length > 0 || untaggedSequences.length > 0) {
+							console.warn('');
 						}
 					} catch (err) {
 						console.warn('[link-report] skipped:', err);

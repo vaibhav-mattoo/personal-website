@@ -11,6 +11,7 @@
     "check": "astro check",
     "preview": "astro preview",
     "links": "node scripts/link-report.mjs",
+    "links:strict": "node scripts/link-report.mjs --strict",
     "astro": "astro"
   },
   "dependencies": {

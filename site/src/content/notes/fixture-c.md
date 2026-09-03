@@ -2,7 +2,7 @@
 title: Fixture C
 date: 2026-01-03
 summary: A draft fixture, cited by fixture-a, with a heading for anchor tests.
-tags: [fixture]
+tags: [fixture, research]
 draft: true
 ---
 

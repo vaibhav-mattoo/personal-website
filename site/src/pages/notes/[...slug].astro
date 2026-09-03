@@ -7,7 +7,11 @@ import Toc from '../../components/Toc.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
+import SequenceNav from '../../components/SequenceNav.astro';
 import { getBacklinks } from '../../lib/backlinks';
+import { getPublicVault } from '../../lib/vault';
+import { getTopicTree } from '../../lib/topicVault';
+import { sequenceNeighbors } from '../../lib/topics';
 import '../../styles/docs.css';
 import '../../styles/prose.css';
 
@@ -31,6 +35,28 @@ const stats = readingTime(note.body ?? '');
 const minutes = Math.max(1, Math.ceil(stats.minutes));
 
 const backlinks = await getBacklinks(note.id);
+
+// If this note appears in any topic's curated sequence, surface prev/next +
+// "Part N of M" for every such topic — a note can belong to more than one.
+const tree = await getTopicTree();
+const { entries: publicEntries } = await getPublicVault();
+const titleById = new Map(publicEntries.map((e) => [e.id, e.title]));
+
+const sequences = [...tree.byId.values()]
+	.filter((topicNode) => topicNode.sequence.includes(note.id))
+	.map((topicNode) => {
+		const neighbors = sequenceNeighbors(topicNode, note.id);
+		const prevTitle = neighbors.prev ? titleById.get(neighbors.prev) : undefined;
+		const nextTitle = neighbors.next ? titleById.get(neighbors.next) : undefined;
+		return {
+			topicId: topicNode.id,
+			topicTitle: topicNode.title,
+			position: neighbors.position ?? 0,
+			total: neighbors.total,
+			prev: neighbors.prev && prevTitle ? { id: neighbors.prev, title: prevTitle } : undefined,
+			next: neighbors.next && nextTitle ? { id: neighbors.next, title: nextTitle } : undefined,
+		};
+	});
 ---
 
 <Base title={note.data.title} docs>
@@ -51,6 +77,8 @@ const backlinks = await getBacklinks(note.id);
 			</div>
 
 			<p class="note__back"><a href="/notes/">← All notes</a></p>
+
+			<SequenceNav sequences={sequences} />
 
 			<Backlinks links={backlinks} />
 			<Comments />

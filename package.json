@@ -10,6 +10,7 @@
     "build": "npm run build -w site",
     "preview": "npm run preview -w site",
     "links": "npm run links -w site",
+    "links:strict": "npm run links:strict -w site",
     "test": "node --test site/test",
     "up": "docker compose up --build"
   }
