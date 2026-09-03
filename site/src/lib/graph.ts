@@ -6,12 +6,12 @@
 // end up in the browser bundle.
 
 import type { LinkIndex } from './links';
-import { tagAncestors, type TopicTree } from './topics';
+import { tagAncestors, type TopicKind, type TopicTree } from './topics';
 
 export type GraphNode = {
 	id: string;
 	title: string;
-	/** A note's `kind` (note/concept/experiment/review/idea), or 'topic'. */
+	/** A note's `kind` (note/concept/experiment/review/idea/paper), or 'topic'. */
 	kind: string;
 	/**
 	 * Every ancestor-or-self topic id this node belongs to, root-first — so
@@ -26,6 +26,12 @@ export type GraphNode = {
 	/** 'orphan' | 'connected' for notes; 'synthesized' | 'real' for topics. */
 	status: string;
 	summary?: string;
+	/** Only for kind: 'paper' — drives opacity in the graph view. */
+	readingStatus?: 'to-read' | 'skimmed' | 'reading' | 'read';
+	/** Only for kind: 'paper' — the timeline toggle fixes x by this. */
+	year?: number;
+	/** Only for kind: 'topic' — its own area/course/paper-thread/scratch kind. */
+	topicKind?: TopicKind;
 };
 
 export type GraphEdge = {
@@ -46,6 +52,8 @@ export type GraphNoteEntry = {
 	tags: string[];
 	kind: string;
 	summary?: string;
+	status?: 'to-read' | 'skimmed' | 'reading' | 'read';
+	year?: number;
 };
 
 /**
@@ -98,6 +106,8 @@ export function buildGraphData(entries: GraphNoteEntry[], index: LinkIndex, tree
 			degree: d,
 			status: d === 0 ? 'orphan' : 'connected',
 			summary: e.summary,
+			readingStatus: e.kind === 'paper' ? e.status : undefined,
+			year: e.kind === 'paper' ? e.year : undefined,
 		};
 	});
 
@@ -111,6 +121,7 @@ export function buildGraphData(entries: GraphNoteEntry[], index: LinkIndex, tree
 			degree: d,
 			status: node.synthesized ? 'synthesized' : 'real',
 			summary: node.summary,
+			topicKind: node.kind,
 		};
 	});
 

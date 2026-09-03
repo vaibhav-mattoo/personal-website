@@ -16,7 +16,7 @@ export type { GraphData, GraphEdge, GraphNode };
 // runtime; GraphNode itself stays a clean, JSON-serializable shape (it's
 // also what graph.json.ts emits), so this local, render-only alias is where
 // those optional extras live.
-type SimNode = GraphNode & { x?: number; y?: number };
+type SimNode = GraphNode & { x?: number; y?: number; fx?: number; fy?: number };
 type FG = ForceGraphCtor<SimNode, GraphEdge>;
 
 export interface GraphProps {
@@ -30,6 +30,12 @@ export interface GraphProps {
 	 * without hiding anything else — used by the global search box.
 	 */
 	highlightQuery?: string;
+	/**
+	 * Fixes every paper node's x by `year` (a year axis along the bottom),
+	 * leaving the force simulation to lay out y only. Non-paper nodes and
+	 * papers with no year float freely, unpinned.
+	 */
+	timeline?: boolean;
 }
 
 function shapeForKind(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' | 'pentagon' | 'star' {
@@ -57,10 +63,28 @@ function edgeDash(type: string): number[] | null {
 			return [4, 4]; // dashed
 		case 'contradicts':
 			return [1, 3]; // dotted
+		case 'cites':
+			return [8, 3, 2, 3]; // long dash-dot — citation lineage
 		case 'topic':
 			return [2, 5]; // sparse dots — hierarchy/membership, not a note relation
 		default:
-			return [6, 2, 1, 2]; // dash-dot fallback for any other declared relation type
+			return [6, 2]; // plain dash fallback for any other declared relation type
+	}
+}
+
+/** to-read palest, read fully opaque — everything else stays fully opaque
+ * (orphan/synthesized fading is a separate, lower-priority effect below). */
+function opacityForReadingStatus(status: string | undefined): number {
+	switch (status) {
+		case 'to-read':
+			return 0.3;
+		case 'skimmed':
+			return 0.55;
+		case 'reading':
+			return 0.75;
+		case 'read':
+		default:
+			return 1;
 	}
 }
 
@@ -146,13 +170,46 @@ function drawShape(
 	}
 }
 
-export const EDGE_LEGEND_ORDER = ['link', 'extends', 'contradicts', 'topic'];
+export const EDGE_LEGEND_ORDER = ['link', 'extends', 'contradicts', 'cites', 'topic'];
 
-export default function Graph({ data, focusId, depth = 1, highlightQuery }: GraphProps) {
+/** Maps a year range to a fixed simulation-space x range for timeline mode. */
+function makeYearScale(minYear: number, maxYear: number): (year: number) => number {
+	if (minYear === maxYear) return () => 0;
+	return (year: number) => ((year - minYear) / (maxYear - minYear)) * 600 - 300;
+}
+
+/**
+ * Timeline mode: fixes x by year for every node that has one (force-graph
+ * respects `fx` regardless of the simulation's other forces, so y stays
+ * free). Disabling clears `fx` so the simulation is free to re-lay-out x
+ * too. Returns the [min, max] year range for axis drawing, or null.
+ */
+function pinNodesByYear(nodes: SimNode[], enabled: boolean): [number, number] | null {
+	if (!enabled) {
+		for (const n of nodes) n.fx = undefined;
+		return null;
+	}
+	const years = nodes.map((n) => n.year).filter((y): y is number => y !== undefined);
+	if (years.length === 0) {
+		for (const n of nodes) n.fx = undefined;
+		return null;
+	}
+	const minYear = Math.min(...years);
+	const maxYear = Math.max(...years);
+	const scale = makeYearScale(minYear, maxYear);
+	for (const n of nodes) {
+		n.fx = n.year !== undefined ? scale(n.year) : undefined;
+	}
+	return [minYear, maxYear];
+}
+
+export default function Graph({ data, focusId, depth = 1, highlightQuery, timeline = false }: GraphProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const fgRef = useRef<FG | null>(null);
 	const colorsRef = useRef<ThemeColors>({ fg: '#222', muted: '#888', border: '#ccc', accent: '#2f71b4' });
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
+	const timelineRef = useRef(timeline);
+	const yearRangeRef = useRef<[number, number] | null>(null);
 
 	const graphData = useMemo(() => {
 		if (!focusId) return data;
@@ -167,11 +224,19 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery }: Grap
 	useEffect(() => {
 		graphDataRef.current = graphData;
 		fgRef.current?.graphData({ nodes: graphData.nodes, links: graphData.edges });
+		yearRangeRef.current = pinNodesByYear(graphData.nodes, timelineRef.current);
+		if (timelineRef.current) fgRef.current?.d3ReheatSimulation();
 	}, [graphData]);
 
 	useEffect(() => {
 		highlightRef.current = highlightQuery?.trim().toLowerCase() || undefined;
 	}, [highlightQuery]);
+
+	useEffect(() => {
+		timelineRef.current = timeline;
+		yearRangeRef.current = pinNodesByYear(graphDataRef.current.nodes, timeline);
+		fgRef.current?.d3ReheatSimulation();
+	}, [timeline]);
 
 	useEffect(() => {
 		const el = containerRef.current;
@@ -213,13 +278,14 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery }: Grap
 					const { x = 0, y = 0 } = node;
 					const r = nodeRadius(node);
 					const faded = isFaded(node);
+					const opacity = node.kind === 'paper' ? opacityForReadingStatus(node.readingStatus) : faded ? 0.5 : 1;
 
 					ctx.save();
-					ctx.globalAlpha = faded ? 0.5 : 1;
+					ctx.globalAlpha = opacity;
 					ctx.fillStyle = nodeColor(node);
 					ctx.strokeStyle = colorsRef.current.border;
 					ctx.lineWidth = 1.25;
-					ctx.setLineDash(faded ? [2, 2] : []);
+					ctx.setLineDash(faded && node.kind !== 'paper' ? [2, 2] : []);
 					drawShape(ctx, shapeForKind(node.kind), x, y, r);
 					ctx.fill();
 					ctx.stroke();
@@ -245,10 +311,43 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery }: Grap
 					const href = node.kind === 'topic' ? `/notes/tags/${node.id}/` : `/notes/${node.id}/`;
 					window.location.href = href;
 				})
+				.onRenderFramePost((ctx) => {
+					if (!timelineRef.current || !yearRangeRef.current || !fg) return;
+					const [minYear, maxYear] = yearRangeRef.current;
+					const scale = makeYearScale(minYear, maxYear);
+					const width = fg.width();
+					const height = fg.height();
+					const axisY = height - 22;
+					const tickCount = Math.min(6, Math.max(1, maxYear - minYear));
+
+					ctx.save();
+					ctx.setTransform(1, 0, 0, 1, 0, 0);
+					ctx.strokeStyle = colorsRef.current.border;
+					ctx.fillStyle = colorsRef.current.muted;
+					ctx.font = '11px var(--font-display, monospace)';
+					ctx.textAlign = 'center';
+					ctx.lineWidth = 1;
+					ctx.beginPath();
+					ctx.moveTo(0, axisY);
+					ctx.lineTo(width, axisY);
+					ctx.stroke();
+
+					for (let i = 0; i <= tickCount; i++) {
+						const year = Math.round(minYear + ((maxYear - minYear) * i) / tickCount);
+						const screen = fg.graph2ScreenCoords(scale(year), 0);
+						ctx.beginPath();
+						ctx.moveTo(screen.x, axisY - 4);
+						ctx.lineTo(screen.x, axisY + 4);
+						ctx.stroke();
+						ctx.fillText(String(year), screen.x, axisY + 16);
+					}
+					ctx.restore();
+				})
 				.enableNodeDrag(true);
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });
+			yearRangeRef.current = pinNodesByYear(graphDataRef.current.nodes, timelineRef.current);
 
 			const resize = () => {
 				const rect = el.getBoundingClientRect();

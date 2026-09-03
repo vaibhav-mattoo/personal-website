@@ -6,6 +6,22 @@ export type VaultEntry = LinkEntry & {
 	date: Date;
 	summary?: string;
 	updated?: Date;
+
+	// Bibliographic fields — populated for kind: 'paper' notes, undefined
+	// (or default) for everything else. See content.config.ts for the schema
+	// and its superRefine, and lib/reading.ts for what reads these.
+	status: 'to-read' | 'skimmed' | 'reading' | 'read';
+	rating?: number;
+	added?: Date;
+	authors: string[];
+	year?: number;
+	venue?: string;
+	doi?: string;
+	arxiv?: string;
+	url?: string;
+	code?: string;
+	bibkey?: string;
+	suggestedBy?: string;
 };
 
 export type Vault = {
@@ -28,10 +44,23 @@ async function loadVault(): Promise<Vault> {
 		draft: note.data.draft,
 		aliases: note.data.aliases,
 		relations: note.data.relations,
+		cites: note.data.cites,
 		body: note.body ?? '',
 		date: note.data.date,
 		summary: note.data.summary,
 		updated: note.data.updated,
+		status: note.data.status,
+		rating: note.data.rating,
+		added: note.data.added,
+		authors: note.data.authors,
+		year: note.data.year,
+		venue: note.data.venue,
+		doi: note.data.doi,
+		arxiv: note.data.arxiv,
+		url: note.data.url,
+		code: note.data.code,
+		bibkey: note.data.bibkey,
+		suggestedBy: note.data.suggestedBy,
 	}));
 	return { entries, index: buildIndex(entries) };
 }

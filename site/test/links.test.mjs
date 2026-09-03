@@ -6,6 +6,7 @@ import {
 	buildIndex,
 	backlinksFor,
 	neighborhood,
+	unresolvedCites,
 } from '../src/lib/links.ts';
 
 function entry(overrides) {
@@ -16,6 +17,7 @@ function entry(overrides) {
 		kind: 'note',
 		aliases: [],
 		relations: [],
+		cites: [],
 		draft: false,
 		body: '',
 		...overrides,
@@ -129,6 +131,41 @@ test('buildIndex: frontmatter relations keep their declared edge type', () => {
 	assert.equal(edges.length, 1);
 	assert.equal(edges[0].type, 'cites');
 	assert.equal(edges[0].broken, false);
+});
+
+test('buildIndex: cites produces an edge only when the target resolves to a real note', () => {
+	const entries = [
+		entry({
+			id: 'lit/smith2020',
+			title: 'Smith 2020',
+			cites: ['lit/jones2018', 'lit/does-not-exist-2019'],
+		}),
+		entry({ id: 'lit/jones2018', title: 'Jones 2018' }),
+	];
+	const { edges } = buildIndex(entries);
+	assert.deepEqual(
+		edges.map((e) => ({ source: e.source, target: e.target, type: e.type })),
+		[{ source: 'lit/smith2020', target: 'lit/jones2018', type: 'cites' }],
+	);
+});
+
+test('unresolvedCites: reports a cites entry with no matching note, informational (not an edge)', () => {
+	const entries = [
+		entry({ id: 'lit/smith2020', title: 'Smith 2020', cites: ['lit/does-not-exist-2019'] }),
+	];
+	const { edges } = buildIndex(entries);
+	assert.equal(edges.length, 0);
+	assert.deepEqual(unresolvedCites(entries), [
+		{ source: 'lit/smith2020', target: 'lit/does-not-exist-2019' },
+	]);
+});
+
+test('unresolvedCites: a resolved cites entry is not reported', () => {
+	const entries = [
+		entry({ id: 'lit/smith2020', title: 'Smith 2020', cites: ['lit/jones2018'] }),
+		entry({ id: 'lit/jones2018', title: 'Jones 2018' }),
+	];
+	assert.deepEqual(unresolvedCites(entries), []);
 });
 
 test('backlinksFor: returns notes that link in, sorted by title, excluding broken edges and self-links', () => {

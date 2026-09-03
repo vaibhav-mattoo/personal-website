@@ -11,6 +11,8 @@
     "preview": "npm run preview -w site",
     "links": "npm run links -w site",
     "links:strict": "npm run links:strict -w site",
+    "lit:add": "npm run lit:add -w site --",
+    "lit:cites": "npm run lit:cites -w site --",
     "test": "node --test site/test",
     "up": "docker compose up --build"
   }
