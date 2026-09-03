@@ -344,7 +344,6 @@ const show = filtered.length >= 2;
 		);
 		padding-block: 0;
 		border: 0;
-		border-bottom: 1px solid var(--border);
 		background: color-mix(in srgb, var(--bg) 80%, transparent);
 		backdrop-filter: blur(8px);
 		color: var(--muted);
@@ -396,8 +395,8 @@ const show = filtered.length >= 2;
 			var(--docs-gutter),
 			calc((100% - var(--content-width)) / 2 + var(--docs-gutter))
 		);
-		border-bottom: 1px solid var(--border);
-		background: var(--bg);
+		background: color-mix(in srgb, var(--bg) 80%, transparent);
+		backdrop-filter: blur(8px);
 	}
 
 </style>

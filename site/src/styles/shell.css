@@ -21,6 +21,22 @@
 	padding: var(--docs-sticky-top) 0 2rem;
 }
 
+/* Always-on frosted band behind the toolbar, so page content never scrolls
+   underneath it unblurred — in both the docs TOC-popover row (< 80rem) and
+   the plain top-of-page case (>= 80rem, or any non-docs page). Sized to
+   --docs-sticky-top so its bottom edge lines up exactly with the top of the
+   toc-popover row on note pages, reading as one continuous band. */
+.toolbar-backdrop {
+	position: fixed;
+	inset: 0 0 auto 0;
+	height: var(--docs-sticky-top);
+	z-index: 55;
+	pointer-events: none;
+	background: color-mix(in srgb, var(--bg) 80%, transparent);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+
 .toolbar {
 	position: fixed;
 	top: var(--toolbar-top);
