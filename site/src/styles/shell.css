@@ -16,6 +16,11 @@
 	min-height: 100dvh;
 }
 
+/* Docs pages manage their own gutters; the shell only clears the toolbar. */
+.shell__main--docs {
+	padding: var(--docs-sticky-top) 0 2rem;
+}
+
 .toolbar {
 	position: fixed;
 	top: var(--toolbar-top);

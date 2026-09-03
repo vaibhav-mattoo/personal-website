@@ -1,0 +1,64 @@
+/*
+ * Docs reading layout, modelled on the fumadocs grid that docs.pears.com uses.
+ *
+ * Two breakpoints matter:
+ *   - md (48rem):  content padding opens up from 1rem to 1.5rem.
+ *   - xl (80rem):  the table of contents moves from a collapsible bar above
+ *                  the article ("half screen") to a sticky rail on the right.
+ */
+
+.docs {
+	--docs-gutter: 1rem;
+	display: grid;
+	width: 100%;
+	max-width: var(--layout-width);
+	margin-inline: auto;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-areas:
+		'toc-popover'
+		'main';
+}
+
+@media (min-width: 48rem) {
+	.docs {
+		--docs-gutter: 1.5rem;
+	}
+}
+
+@media (min-width: 80rem) {
+	.docs {
+		--docs-gutter: 2rem;
+		grid-template-columns: minmax(0, 1fr) var(--toc-width);
+		grid-template-areas: 'main toc';
+	}
+}
+
+.docs__main {
+	grid-area: main;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	width: 100%;
+	max-width: var(--content-width);
+	margin-inline: auto;
+	min-width: 0;
+	padding: 1.5rem var(--docs-gutter);
+}
+
+@media (min-width: 48rem) {
+	.docs__main {
+		padding: 2rem var(--docs-gutter) 1.5rem;
+	}
+}
+
+@media (min-width: 80rem) {
+	.docs__main {
+		padding: 2.5rem var(--docs-gutter) 1.5rem;
+	}
+}
+
+/* The article body itself is unconstrained — the column above does the work,
+   so prose, code blocks and figures all share one measure. */
+.docs__prose {
+	min-width: 0;
+}

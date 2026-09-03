@@ -7,105 +7,397 @@ interface Props {
 
 const { headings } = Astro.props;
 const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const show = filtered.length >= 2;
 ---
 
 {
-	filtered.length >= 3 && (
-		<aside class="toc" aria-label="Table of contents">
-			<details class="toc__details">
-				<summary class="toc__summary">Contents</summary>
-				<ol class="toc__list">
+	show && (
+		<>
+			{/* Below 80rem the contents collapse into a sticky bar above the article,
+			    with a ring that doubles as the reading-progress indicator. */}
+			<div class="toc-popover" data-toc-popover>
+				<button
+					type="button"
+					class="toc-popover__trigger"
+					aria-expanded="false"
+					aria-controls="toc-popover-list"
+				>
+					<svg class="toc-popover__ring" viewBox="0 0 24 24" role="img" aria-hidden="true">
+						<circle cx="12" cy="12" r="11" fill="none" stroke-width="2" class="toc-popover__ring-track" />
+						<circle
+							cx="12"
+							cy="12"
+							r="11"
+							fill="none"
+							stroke-width="2"
+							stroke-linecap="round"
+							transform="rotate(-90 12 12)"
+							class="toc-popover__ring-bar"
+						/>
+					</svg>
+					<span class="toc-popover__label" data-toc-current>
+						On this page
+					</span>
+					<svg
+						class="toc-popover__chevron"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="m6 9 6 6 6-6" />
+					</svg>
+				</button>
+				<div class="toc-popover__panel" id="toc-popover-list" hidden>
+					<nav class="toc__rail">
+						{filtered.map((h) => (
+							<a
+								class={`toc__link toc__link--d${h.depth}`}
+								href={`#${h.slug}`}
+								data-toc-link
+								data-active="false"
+							>
+								<span class="toc__marker" aria-hidden="true" />
+								{h.text}
+							</a>
+						))}
+					</nav>
+				</div>
+			</div>
+
+			<aside class="toc" aria-labelledby="toc-title">
+				<h2 class="toc__title" id="toc-title">
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M21 5H3" />
+						<path d="M15 12H3" />
+						<path d="M17 19H3" />
+					</svg>
+					On this page
+				</h2>
+				<nav class="toc__scroll toc__rail" data-toc-scroll>
 					{filtered.map((h) => (
-						<li class={`toc__item toc__item--d${h.depth}`}>
-							<a href={`#${h.slug}`}>{h.text}</a>
-						</li>
+						<a
+							class={`toc__link toc__link--d${h.depth}`}
+							href={`#${h.slug}`}
+							data-toc-link
+							data-active="false"
+						>
+							<span class="toc__marker" aria-hidden="true" />
+							{h.text}
+						</a>
 					))}
-				</ol>
-			</details>
-		</aside>
+				</nav>
+			</aside>
+		</>
 	)
 }
 
 <script>
-	if (window.matchMedia('(min-width: 64rem)').matches) {
-		document.querySelector('.toc__details')?.setAttribute('open', '');
-	}
+	const links = Array.from(
+		document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'),
+	);
 
-	const tocItems = Array.from(document.querySelectorAll('.toc__item a')).map((a) => {
-		const id = a.getAttribute('href')!.slice(1);
-		return { id, item: a.closest('.toc__item')! };
-	});
+	if (links.length > 0) {
+		const scroller = document.querySelector<HTMLElement>('[data-toc-scroll]');
+		const label = document.querySelector<HTMLElement>('[data-toc-current]');
+		const ring = document.querySelector<SVGCircleElement>('.toc-popover__ring-bar');
+		const popover = document.querySelector<HTMLElement>('[data-toc-popover]');
+		const trigger = popover?.querySelector<HTMLButtonElement>('.toc-popover__trigger');
+		const panel = popover?.querySelector<HTMLElement>('.toc-popover__panel');
 
-	function updateActive() {
-		let activeIndex = 0;
-		for (let i = 0; i < tocItems.length; i++) {
-			const el = document.getElementById(tocItems[i].id);
-			if (el && el.getBoundingClientRect().top <= 100) activeIndex = i;
+		const CIRCUMFERENCE = 2 * Math.PI * 11;
+		if (ring) {
+			ring.style.strokeDasharray = `${CIRCUMFERENCE}`;
+			ring.style.strokeDashoffset = `${CIRCUMFERENCE}`;
 		}
-		tocItems.forEach(({ item }, i) =>
-			item.classList.toggle('toc__item--active', i === activeIndex),
-		);
-	}
 
-	window.addEventListener('scroll', updateActive, { passive: true });
-	updateActive();
+		// One id per heading; the same id may back two links (rail + popover).
+		const ids = Array.from(new Set(links.map((a) => a.getAttribute('href')!.slice(1))));
+
+		// Offset at which a heading counts as "current": just under the floating
+		// toolbar, so the active entry flips as the heading leaves the viewport.
+		const toolbar = document.querySelector<HTMLElement>('.toolbar');
+		const activeLine = () => {
+			const bar = toolbar?.getBoundingClientRect().bottom ?? 56;
+			return Math.max(bar, 0) + 24;
+		};
+
+		let currentId: string | null = null;
+
+		function setActive(id: string | null) {
+			if (id === currentId) return;
+			currentId = id;
+
+			for (const a of links) {
+				a.dataset.active = String(a.getAttribute('href') === `#${id}`);
+			}
+
+			const active = links.find((a) => a.getAttribute('href') === `#${id}`);
+			if (label) label.textContent = active?.textContent?.trim() || 'On this page';
+
+			// Keep the active entry visible in the rail without scrolling the page.
+			if (scroller && active && scroller.contains(active)) {
+				const top = active.offsetTop - scroller.clientHeight / 2 + active.clientHeight / 2;
+				scroller.scrollTo({ top, behavior: 'smooth' });
+			}
+		}
+
+		function update() {
+			const line = activeLine();
+
+			// Last heading whose top has passed the active line wins; before the
+			// first one, nothing is active.
+			let found: string | null = null;
+			for (const id of ids) {
+				const el = document.getElementById(id);
+				if (el && el.getBoundingClientRect().top <= line) found = id;
+			}
+			setActive(found);
+
+			if (ring) {
+				const max = document.documentElement.scrollHeight - window.innerHeight;
+				const pct = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+				ring.style.strokeDashoffset = `${CIRCUMFERENCE * (1 - pct)}`;
+			}
+		}
+
+		window.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('resize', update, { passive: true });
+		update();
+
+		function closePopover() {
+			if (!trigger || !panel) return;
+			trigger.setAttribute('aria-expanded', 'false');
+			panel.hidden = true;
+		}
+
+		trigger?.addEventListener('click', () => {
+			if (!panel) return;
+			const open = trigger.getAttribute('aria-expanded') === 'true';
+			trigger.setAttribute('aria-expanded', String(!open));
+			panel.hidden = open;
+		});
+
+		// Dismiss on pick, outside click, or Escape.
+		panel?.addEventListener('click', (e) => {
+			if ((e.target as HTMLElement).closest('a')) closePopover();
+		});
+
+		document.addEventListener('click', (e) => {
+			if (popover && !popover.contains(e.target as Node)) closePopover();
+		});
+
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape') closePopover();
+		});
+	}
 </script>
 
 <style>
+	/* ---- Right-hand rail (>= 80rem) ------------------------------------ */
+
 	.toc {
+		grid-area: toc;
+		display: none;
+		flex-direction: column;
+		min-height: 0;
+		width: var(--toc-width);
+		position: sticky;
+		top: var(--docs-sticky-top);
+		max-height: calc(100dvh - var(--docs-sticky-top) - 1rem);
+		padding: 3rem 1rem 0.5rem 0;
 		font-family: var(--font-body);
-		font-size: 0.9rem;
 	}
 
-	.toc__summary {
-		cursor: pointer;
-		font-family: var(--font-display);
-		font-weight: 600;
+	@media (min-width: 80rem) {
+		.toc {
+			display: flex;
+		}
+	}
+
+	.toc__title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		margin: 0;
+		font-family: var(--font-body);
+		font-size: 0.875rem;
+		font-weight: 400;
 		color: var(--muted);
-		margin-bottom: 0.5rem;
 	}
 
-	.toc__summary::-webkit-details-marker {
+	.toc__title svg {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+	}
+
+	.toc__scroll {
+		position: relative;
+		min-height: 0;
+		overflow-y: auto;
+		scrollbar-width: none;
+		padding-block: 0.75rem;
+		/* Fade entries in and out at the ends of the rail. */
+		mask-image: linear-gradient(
+			to bottom,
+			transparent,
+			#000 16px,
+			#000 calc(100% - 16px),
+			transparent
+		);
+	}
+
+	.toc__scroll::-webkit-scrollbar {
 		display: none;
 	}
 
-	.toc__list {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		border-left: 1px solid var(--border);
+	/* ---- Shared rail entries ------------------------------------------- */
+
+	.toc__rail {
+		display: flex;
+		flex-direction: column;
 	}
 
-	.toc__item a {
+	.toc__link {
+		position: relative;
 		display: block;
-		padding: 0.25rem 0.75rem;
+		padding: 0.375rem 0 0.375rem 0.875rem;
+		font-size: 0.875rem;
+		line-height: 1.45;
 		color: var(--muted);
 		text-decoration: none;
-		border-left: 2px solid transparent;
-		margin-left: -1px;
+		overflow-wrap: anywhere;
+		transition: color 0.15s;
 	}
 
-	.toc__item--d3 a {
-		padding-left: 1.5rem;
-		font-size: 0.85rem;
+	.toc__link--d3 {
+		padding-left: 1.75rem;
 	}
 
-	.toc__item--active > a {
+	.toc__link:first-child {
+		padding-top: 0;
+	}
+
+	.toc__link:last-child {
+		padding-bottom: 0;
+	}
+
+	/* The rail line is drawn per-entry so the active segment can light up. */
+	.toc__marker {
+		position: absolute;
+		inset-block: 0;
+		left: 0;
+		width: 1px;
+		background: var(--rail);
+		transition: background-color 0.15s;
+	}
+
+	.toc__link:hover {
+		color: var(--fg);
+	}
+
+	.toc__link[data-active='true'] {
 		color: var(--accent);
-		border-left-color: var(--accent);
 	}
 
-	.toc__item a:hover {
-		color: var(--accent);
-		border-left-color: var(--accent);
+	.toc__link[data-active='true'] .toc__marker {
+		background: var(--accent);
 	}
 
-	@media (min-width: 64rem) {
-		.toc {
-			position: sticky;
-			top: 5rem;
-			max-height: calc(100dvh - 7rem);
-			overflow-y: auto;
+	/* ---- Collapsed bar (< 80rem) --------------------------------------- */
+
+	.toc-popover {
+		grid-area: toc-popover;
+		position: sticky;
+		top: var(--docs-sticky-top);
+		z-index: 30;
+	}
+
+	@media (min-width: 80rem) {
+		.toc-popover {
+			display: none;
 		}
 	}
+
+	.toc-popover__trigger {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		width: 100%;
+		height: var(--toc-popover-h);
+		/* Line the bar's contents up with the centred article column. */
+		padding-inline: max(
+			var(--docs-gutter),
+			calc((100% - var(--content-width)) / 2 + var(--docs-gutter))
+		);
+		padding-block: 0;
+		border: 0;
+		border-bottom: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg) 80%, transparent);
+		backdrop-filter: blur(8px);
+		color: var(--muted);
+		font-family: var(--font-body);
+		font-size: 0.875rem;
+		text-align: start;
+		cursor: pointer;
+	}
+
+	.toc-popover__ring {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+	}
+
+	.toc-popover__ring-track {
+		stroke: color-mix(in srgb, currentColor 25%, transparent);
+	}
+
+	.toc-popover__ring-bar {
+		stroke: var(--accent);
+		transition: stroke-dashoffset 0.1s linear;
+	}
+
+	.toc-popover__label {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.toc-popover__chevron {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		transition: transform 0.2s;
+	}
+
+	.toc-popover__trigger[aria-expanded='true'] .toc-popover__chevron {
+		transform: rotate(180deg);
+	}
+
+	.toc-popover__panel {
+		max-height: 50vh;
+		overflow-y: auto;
+		padding-block: 0.75rem 1rem;
+		padding-inline: max(
+			var(--docs-gutter),
+			calc((100% - var(--content-width)) / 2 + var(--docs-gutter))
+		);
+		border-bottom: 1px solid var(--border);
+		background: var(--bg);
+	}
+
 </style>

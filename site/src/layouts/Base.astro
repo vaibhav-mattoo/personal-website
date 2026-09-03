@@ -15,9 +15,11 @@ import { site } from '../config/site';
 
 interface Props {
 	title?: string;
+	/** Docs reading layout: the page owns its own gutters and TOC column. */
+	docs?: boolean;
 }
 
-const { title = site.tabTitle } = Astro.props;
+const { title = site.tabTitle, docs = false } = Astro.props;
 const documentTitle =
 	title === site.tabTitle ? site.tabTitle : `${title} · ${site.tabTitle}`;
 ---
@@ -59,7 +61,7 @@ const documentTitle =
 				</div>
 			</header>
 
-			<main class="shell__main">
+			<main class={docs ? 'shell__main shell__main--docs' : 'shell__main'}>
 				<slot />
 			</main>
 		</div>

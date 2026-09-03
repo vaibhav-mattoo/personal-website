@@ -3,6 +3,15 @@
 	--font-display: ui-monospace, monospace;
 	--accent-soft: color-mix(in srgb, var(--accent) 18%, var(--bg));
 	--radius: 6px;
+	--radius-lg: 12px;
+
+	/* Docs layout — mirrors the fumadocs grid used by docs.pears.com. */
+	--layout-width: 1400px;
+	--toc-width: 268px;
+	--content-width: 900px;
+	--toolbar-h: calc(var(--toolbar-top) + var(--toolbar-btn));
+	--docs-sticky-top: calc(var(--toolbar-h) + 0.5rem);
+	--toc-popover-h: 2.5rem;
 }
 
 /* Surfaces — taniarascia.com beige / gray scale */
@@ -11,6 +20,9 @@
 	--fg: #25252b;
 	--muted: #4e4e55;
 	--border: #e5dcbd;
+	--card: #f2ead4;
+	--code-bg: #f7f1e0;
+	--rail: color-mix(in srgb, var(--fg) 12%, transparent);
 }
 
 [data-mode='dark'] {
@@ -18,6 +30,9 @@
 	--fg: #d4d4d8;
 	--muted: #a1a1a8;
 	--border: #323239;
+	--card: #2a2a31;
+	--code-bg: #232328;
+	--rail: color-mix(in srgb, var(--fg) 14%, transparent);
 }
 
 /* Accents — light-dark pairs from taniarascia.com */

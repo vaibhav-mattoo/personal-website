@@ -8,6 +8,7 @@ import ReadingProgress from '../../components/ReadingProgress.astro';
 import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
 import { getBacklinks } from '../../lib/backlinks';
+import '../../styles/docs.css';
 import '../../styles/prose.css';
 
 export async function getStaticPaths() {
@@ -32,28 +33,29 @@ const minutes = Math.max(1, Math.ceil(stats.minutes));
 const backlinks = await getBacklinks(note.id);
 ---
 
-<Base title={note.data.title}>
+<Base title={note.data.title} docs>
 	<ReadingProgress />
 
-	<article class="note" data-pagefind-body>
-		<header class="note-head">
-			<h1>{note.data.title}</h1>
-			<NoteMeta date={note.data.date} minutes={minutes} words={words} />
-			{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
-		</header>
+	<div class="docs">
+		<Toc headings={headings} />
 
-		<div class="note-layout">
-			<Toc headings={headings} />
-			<div class="prose">
+		<article class="docs__main" data-pagefind-body>
+			<header class="note-head">
+				<h1>{note.data.title}</h1>
+				{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
+				<NoteMeta date={note.data.date} minutes={minutes} words={words} />
+			</header>
+
+			<div class="prose docs__prose">
 				<Content />
 			</div>
-		</div>
 
-		<p class="note__back"><a href="/notes/">← All notes</a></p>
-	</article>
+			<p class="note__back"><a href="/notes/">← All notes</a></p>
 
-	<Backlinks links={backlinks} />
-	<Comments />
+			<Backlinks links={backlinks} />
+			<Comments />
+		</article>
+	</div>
 </Base>
 
 <script>
@@ -65,15 +67,8 @@ const backlinks = await getBacklinks(note.id);
 </script>
 
 <style>
-	.note {
-		margin: 2rem 0;
-		max-width: 64rem;
-		padding-left: clamp(0rem, 10vw - 4rem, 12rem);
-	}
-
 	.note-head {
-		margin: 0 0 1.5rem;
-		max-width: 48rem;
+		margin: 0 0 0.5rem;
 	}
 
 	.note-head h1 {
@@ -81,44 +76,21 @@ const backlinks = await getBacklinks(note.id);
 		color: var(--accent);
 		font-family: var(--font-body);
 		font-size: clamp(1.75rem, 4vw, 2.5rem);
+		line-height: 1.15;
+		letter-spacing: -0.02em;
 	}
 
 	.note-head__summary {
-		margin: 0.5rem 0 0;
+		margin: 0 0 0.75rem;
 		color: var(--muted);
-		font-style: italic;
-	}
-
-	.note-layout {
-		display: grid;
-		gap: 2rem;
-	}
-
-	@media (min-width: 64rem) {
-		.note-layout {
-			grid-template-columns: minmax(0, 1fr) 14rem;
-			align-items: start;
-		}
-
-		.note-layout .prose {
-			grid-column: 1;
-			grid-row: 1;
-		}
-
-		.note-layout :global(.toc) {
-			grid-column: 2;
-			grid-row: 1;
-		}
-	}
-
-	.prose {
-		max-width: 48rem;
+		font-size: 1.05rem;
+		line-height: 1.6;
 	}
 
 	.note__back {
-		margin-top: 2rem;
-		max-width: 48rem;
+		margin: 2rem 0 0;
 		font-family: var(--font-display);
+		font-size: 0.9rem;
 	}
 
 	.note__back a {

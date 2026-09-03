@@ -1,39 +1,124 @@
-/* Applied to the article wrapping <Content /> in [...slug].astro. */
+/* Applied to the article wrapping <Content /> in [...slug].astro.
+   Vertical rhythm and code-block metrics follow docs.pears.com (fumadocs). */
 
 .prose {
 	font-family: var(--font-body);
+	font-size: 1rem;
 	line-height: 1.7;
 	color: var(--fg);
+}
+
+.prose > :first-child {
+	margin-top: 0;
+}
+
+.prose > :last-child {
+	margin-bottom: 0;
 }
 
 .prose h2,
 .prose h3,
 .prose h4 {
-	margin: 1.75rem 0 0.75rem;
 	color: var(--fg);
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: -0.01em;
+	scroll-margin-top: 6rem;
 }
 
-.prose p,
+.prose h2 {
+	margin: 2.5rem 0 0.75rem;
+	font-size: 1.5rem;
+}
+
+.prose h3 {
+	margin: 2rem 0 0.5rem;
+	font-size: 1.2rem;
+}
+
+.prose h4 {
+	margin: 1.5rem 0 0.5rem;
+	font-size: 1.05rem;
+}
+
+.prose p {
+	margin: 0 0 1rem;
+}
+
 .prose ul,
 .prose ol {
 	margin: 0 0 1rem;
+	padding-left: 1.25rem;
+}
+
+.prose li {
+	margin: 0.25rem 0;
+}
+
+.prose li::marker {
+	color: var(--muted);
 }
 
 .prose a {
 	color: var(--accent);
+	text-underline-offset: 2px;
 }
 
+.prose hr {
+	margin: 2.5rem 0;
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+
+/* Code blocks — expressive-code renders its own frame; these rules cover the
+   plain <pre> fallback and cap tall blocks the way fumadocs does. */
 .prose pre {
-	padding: 1rem;
-	overflow-x: auto;
-	border-radius: var(--radius);
+	padding: 0.875rem 1rem;
+	overflow: auto;
+	max-height: 600px;
+	border-radius: var(--radius-lg);
 	border: 1px solid var(--border);
-	background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+	background: var(--code-bg);
+	font-size: 0.8125rem;
+	line-height: 1.6;
+}
+
+.prose .expressive-code {
+	margin: 1.5rem 0;
+}
+
+.prose .expressive-code pre {
+	max-height: 600px;
 }
 
 .prose :not(pre) > code {
 	font-family: var(--font-display);
-	font-size: 0.9em;
+	font-size: 0.85em;
+	padding: 0.15em 0.35em;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--card);
+}
+
+.prose table {
+	display: block;
+	width: 100%;
+	overflow-x: auto;
+	margin: 1.5rem 0;
+	border-collapse: collapse;
+	font-size: 0.9375rem;
+}
+
+.prose th,
+.prose td {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--border);
+	text-align: left;
+}
+
+.prose th {
+	background: var(--card);
+	font-weight: 600;
 }
 
 .prose blockquote {
@@ -41,7 +126,7 @@
 	padding: 0.75rem 1rem;
 	border-left: 3px solid var(--accent);
 	background: var(--accent-soft);
-	border-radius: 0 var(--radius) var(--radius) 0;
+	border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 	font-style: italic;
 	color: var(--fg);
 }
@@ -54,7 +139,7 @@
 	margin-bottom: 0;
 }
 
-.prose figure {
+.prose figure:has(img) {
 	margin: 1.5rem 0;
 	text-align: center;
 }
@@ -62,12 +147,12 @@
 .prose figure img {
 	max-width: 100%;
 	height: auto;
-	border-radius: var(--radius);
+	border-radius: var(--radius-lg);
 	border: 1px solid var(--border);
 	cursor: zoom-in;
 }
 
-.prose figure figcaption {
+.prose figure:has(img) figcaption {
 	margin-top: 0.5rem;
 	font-family: var(--font-body);
 	font-size: 0.9rem;
@@ -94,9 +179,9 @@
 	justify-content: center;
 	margin: 1.5rem 0;
 	padding: 1rem;
-	background: var(--accent-soft);
+	background: var(--card);
 	border: 1px solid var(--border);
-	border-radius: var(--radius);
+	border-radius: var(--radius-lg);
 	overflow-x: auto;
 }
 
