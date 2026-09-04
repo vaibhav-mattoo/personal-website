@@ -15,7 +15,6 @@ const authorsLine = paper.authors.length > 0 ? paper.authors.join(', ') : undefi
 	data-row
 	data-venue={paper.venue ?? ''}
 	data-year={paper.year ?? ''}
-	data-status={paper.status}
 	data-topics={paper.tags.join('|')}
 >
 	<a class="row__title" href={`/notes/${paper.id}/`}>{paper.title}</a>

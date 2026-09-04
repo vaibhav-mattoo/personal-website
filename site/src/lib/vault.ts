@@ -9,8 +9,7 @@ export type VaultEntry = LinkEntry & {
 
 	// Bibliographic fields — populated for kind: 'paper' notes, undefined
 	// (or default) for everything else. See content.config.ts for the schema
-	// and its superRefine, and lib/reading.ts for what reads these.
-	status: 'to-read' | 'skimmed' | 'reading' | 'read';
+	// and its superRefine.
 	rating?: number;
 	added?: Date;
 	authors: string[];
@@ -52,7 +51,6 @@ async function loadVault(): Promise<Vault> {
 		date: note.data.date,
 		summary: note.data.summary,
 		updated: note.data.updated,
-		status: note.data.status,
 		rating: note.data.rating,
 		added: note.data.added,
 		authors: note.data.authors,

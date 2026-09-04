@@ -270,7 +270,6 @@ function buildFrontmatter(meta, { bibkey, stub }) {
 	lines.push(`date: ${todayIso()}`);
 	lines.push(`added: ${todayIso()}`);
 	lines.push(`kind: paper`);
-	lines.push(`status: to-read`);
 	if (meta.authors && meta.authors.length > 0) {
 		lines.push('authors:');
 		for (const a of meta.authors) lines.push(`  - ${yamlString(a)}`);

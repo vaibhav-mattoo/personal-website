@@ -38,10 +38,8 @@ export interface GraphProps {
 	timeline?: boolean;
 }
 
-function shapeForKind(kind: string): 'circle' | 'square' | 'diamond' | 'triangle' | 'pentagon' | 'star' {
+function shapeForKind(kind: string): 'circle' | 'diamond' | 'triangle' | 'pentagon' | 'star' {
 	switch (kind) {
-		case 'topic':
-			return 'square';
 		case 'concept':
 			return 'diamond';
 		case 'experiment':
@@ -72,25 +70,21 @@ function edgeDash(type: string): number[] | null {
 	}
 }
 
-/** to-read palest, read fully opaque — everything else stays fully opaque
- * (orphan/synthesized fading is a separate, lower-priority effect below). */
-function opacityForReadingStatus(status: string | undefined): number {
-	switch (status) {
-		case 'to-read':
-			return 0.3;
-		case 'skimmed':
-			return 0.55;
-		case 'reading':
-			return 0.75;
-		case 'read':
-		default:
-			return 1;
-	}
-}
 
 function nodeRadius(node: GraphNode): number {
-	const base = node.kind === 'topic' ? 6 : 4;
-	return Math.min(base + Math.sqrt(node.degree) * 2.2, 16);
+	return Math.min(4 + Math.sqrt(node.degree) * 2.2, 16);
+}
+
+/**
+ * Topic nodes render as text, not a shape — sized by how deep they are in
+ * the tag path (`topics` is that node's own ancestor-or-self chain, so its
+ * length *is* the depth: 1 = top-level). Top-level topics read as
+ * headings; deeper subtopics recede, the same visual hierarchy a nested
+ * list would give you, but laid out by the graph instead.
+ */
+function topicFontSize(node: GraphNode): number {
+	const depth = node.topics.length || 1;
+	return Math.max(9, 17 - (depth - 1) * 3);
 }
 
 /** Deterministic color per top-level topic — a fixed categorical palette
@@ -126,9 +120,6 @@ function drawShape(
 ) {
 	ctx.beginPath();
 	switch (shape) {
-		case 'square':
-			ctx.rect(x - r, y - r, r * 2, r * 2);
-			break;
 		case 'diamond':
 			ctx.moveTo(x, y - r);
 			ctx.lineTo(x + r, y);
@@ -210,6 +201,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const timelineRef = useRef(timeline);
 	const yearRangeRef = useRef<[number, number] | null>(null);
+	const zoomedOnceRef = useRef(false);
 
 	const graphData = useMemo(() => {
 		if (!focusId) return data;
@@ -264,6 +256,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 				.linkSource('source')
 				.linkTarget('target')
 				.linkWidth(1)
+				.linkCurvature(0.15)
 				.linkColor(() => colorsRef.current.border)
 				.linkLineDash((edge) => edgeDash(edge.type))
 				.nodeColor(nodeColor)
@@ -276,22 +269,40 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 				})
 				.nodeCanvasObject((node, ctx) => {
 					const { x = 0, y = 0 } = node;
-					const r = nodeRadius(node);
 					const faded = isFaded(node);
-					const opacity = node.kind === 'paper' ? opacityForReadingStatus(node.readingStatus) : faded ? 0.5 : 1;
+					const highlighted = isHighlighted(node);
 
+					if (node.kind === 'topic') {
+						const size = topicFontSize(node);
+						ctx.save();
+						ctx.globalAlpha = faded ? 0.55 : 1;
+						ctx.font = `${faded ? '' : '600 '}${size}px var(--font-display, ui-monospace, monospace)`;
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'middle';
+						if (highlighted) {
+							ctx.lineWidth = 3;
+							ctx.strokeStyle = colorsRef.current.accent;
+							ctx.strokeText(node.title, x, y);
+						}
+						ctx.fillStyle = nodeColor(node);
+						ctx.fillText(node.title, x, y);
+						ctx.restore();
+						return;
+					}
+
+					const r = nodeRadius(node);
 					ctx.save();
-					ctx.globalAlpha = opacity;
+					ctx.globalAlpha = faded ? 0.5 : 1;
 					ctx.fillStyle = nodeColor(node);
 					ctx.strokeStyle = colorsRef.current.border;
 					ctx.lineWidth = 1.25;
-					ctx.setLineDash(faded && node.kind !== 'paper' ? [2, 2] : []);
+					ctx.setLineDash(faded ? [2, 2] : []);
 					drawShape(ctx, shapeForKind(node.kind), x, y, r);
 					ctx.fill();
 					ctx.stroke();
 					ctx.restore();
 
-					if (isHighlighted(node)) {
+					if (highlighted) {
 						ctx.save();
 						ctx.strokeStyle = colorsRef.current.accent;
 						ctx.lineWidth = 2;
@@ -304,12 +315,26 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 				.nodePointerAreaPaint((node, color, ctx) => {
 					const { x = 0, y = 0 } = node;
 					ctx.fillStyle = color;
+
+					if (node.kind === 'topic') {
+						const size = topicFontSize(node);
+						ctx.font = `${size}px var(--font-display, ui-monospace, monospace)`;
+						const width = ctx.measureText(node.title).width;
+						ctx.fillRect(x - width / 2 - 3, y - size / 2 - 2, width + 6, size + 4);
+						return;
+					}
+
 					drawShape(ctx, shapeForKind(node.kind), x, y, nodeRadius(node) + 2);
 					ctx.fill();
 				})
 				.onNodeClick((node) => {
 					const href = node.kind === 'topic' ? `/notes/tags/${node.id}/` : `/notes/${node.id}/`;
 					window.location.href = href;
+				})
+				.onEngineStop(() => {
+					if (zoomedOnceRef.current || !fg) return;
+					zoomedOnceRef.current = true;
+					fg.zoomToFit(400, 40);
 				})
 				.onRenderFramePost((ctx) => {
 					if (!timelineRef.current || !yearRangeRef.current || !fg) return;
@@ -344,6 +369,11 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 					ctx.restore();
 				})
 				.enableNodeDrag(true);
+
+			// More breathing room than the library defaults: stronger repulsion
+			// and longer link distance so clusters separate instead of clumping.
+			fg.d3Force('charge')?.strength(-160);
+			fg.d3Force('link')?.distance(70);
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });

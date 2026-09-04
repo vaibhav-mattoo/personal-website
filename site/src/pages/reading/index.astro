@@ -6,25 +6,15 @@ import { getPublicVault } from '../../lib/vault';
 import type { VaultEntry } from '../../lib/vault';
 
 const { entries } = await getPublicVault();
-const papers = entries.filter((e) => e.kind === 'paper');
-
-function activity(p: VaultEntry): number {
-	return (p.updated ?? p.added ?? p.date).valueOf();
-}
-
-const queue = papers
-	.filter((p) => p.status === 'to-read')
-	.sort((a, b) => (b.added?.valueOf() ?? 0) - (a.added?.valueOf() ?? 0));
-const nowReading = papers.filter((p) => p.status === 'reading').sort((a, b) => activity(b) - activity(a));
-const recentlyRead = papers.filter((p) => p.status === 'read').sort((a, b) => activity(b) - activity(a));
-const skimmed = papers.filter((p) => p.status === 'skimmed').sort((a, b) => activity(b) - activity(a));
+const papers = entries
+	.filter((e) => e.kind === 'paper')
+	.sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || a.title.localeCompare(b.title));
 
 const venues = [...new Set(papers.map((p) => p.venue).filter((v): v is string => Boolean(v)))].sort();
 const years = [...new Set(papers.map((p) => p.year).filter((y): y is number => y !== undefined))].sort(
 	(a, b) => b - a,
 );
 const topics = [...new Set(papers.flatMap((p) => p.tags))].sort();
-const statuses = ['to-read', 'reading', 'skimmed', 'read'] as const;
 
 function externalHref(p: VaultEntry): string | undefined {
 	if (p.url) return p.url;
@@ -38,10 +28,10 @@ function externalHref(p: VaultEntry): string | undefined {
 <Base title="Reading">
 	<header class="head">
 		<h1>Reading</h1>
-		<p>Papers, tracked as ordinary notes — reading status, not a separate content type.</p>
+		<p>Papers, tracked as ordinary notes with bibliographic frontmatter.</p>
 	</header>
 
-	<TerminalPrompt command="reading --status all" />
+	<TerminalPrompt command="reading --list" />
 
 	<div class="filters" role="group" aria-label="Filter reading list">
 		<select data-filter="venue" aria-label="Filter by venue">
@@ -56,68 +46,22 @@ function externalHref(p: VaultEntry): string | undefined {
 			<option value="">All topics</option>
 			{topics.map((t) => <option value={t}>{t}</option>)}
 		</select>
-		<select data-filter="status" aria-label="Filter by status">
-			<option value="">All statuses</option>
-			{statuses.map((s) => <option value={s}>{s}</option>)}
-		</select>
 		<button type="button" data-filter-clear>Clear</button>
 	</div>
 
 	<p class="empty" data-empty-message hidden>No papers match these filters.</p>
 
 	{
-		queue.length > 0 && (
-			<section class="section">
-				<h2>Queue</h2>
-				<ul class="rows">
-					{queue.map((p) => (
-						<PaperRow paper={p} externalHref={externalHref(p)} />
-					))}
-				</ul>
-			</section>
+		papers.length > 0 ? (
+			<ul class="rows">
+				{papers.map((p) => (
+					<PaperRow paper={p} externalHref={externalHref(p)} />
+				))}
+			</ul>
+		) : (
+			<p class="empty">No paper notes yet — try `npm run lit:add`.</p>
 		)
 	}
-
-	{
-		nowReading.length > 0 && (
-			<section class="section">
-				<h2>Reading</h2>
-				<ul class="rows">
-					{nowReading.map((p) => (
-						<PaperRow paper={p} externalHref={externalHref(p)} />
-					))}
-				</ul>
-			</section>
-		)
-	}
-
-	{
-		recentlyRead.length > 0 && (
-			<section class="section">
-				<h2>Recently read</h2>
-				<ul class="rows">
-					{recentlyRead.map((p) => (
-						<PaperRow paper={p} externalHref={externalHref(p)} />
-					))}
-				</ul>
-			</section>
-		)
-	}
-
-	{
-		skimmed.length > 0 && (
-			<details class="section skimmed-collapse">
-				<summary>Skimmed ({skimmed.length})</summary>
-				<ul class="rows">
-					{skimmed.map((p) => (
-						<PaperRow paper={p} externalHref={externalHref(p)} />
-					))}
-				</ul>
-			</details>
-		)
-	}
-
-	{papers.length === 0 && <p class="empty">No paper notes yet — try `npm run lit:add`.</p>}
 </Base>
 
 <script>
@@ -136,21 +80,12 @@ function externalHref(p: VaultEntry): string | undefined {
 		rows.forEach((row) => {
 			const matchesVenue = !active.venue || row.dataset.venue === active.venue;
 			const matchesYear = !active.year || row.dataset.year === active.year;
-			const matchesStatus = !active.status || row.dataset.status === active.status;
 			const rowTopics = (row.dataset.topics ?? '').split('|').filter(Boolean);
 			const matchesTopic = !active.topic || rowTopics.includes(active.topic);
 
-			const visible = matchesVenue && matchesYear && matchesStatus && matchesTopic;
+			const visible = matchesVenue && matchesYear && matchesTopic;
 			row.hidden = !visible;
 			if (visible) visibleCount++;
-		});
-
-		// Hide a whole section (and the "Skimmed" <details>) when every row in
-		// it is filtered out, so filtering doesn't leave empty headings behind.
-		document.querySelectorAll<HTMLElement>('.section').forEach((section) => {
-			const sectionRows = section.querySelectorAll<HTMLElement>('[data-row]');
-			const anyVisible = [...sectionRows].some((r) => !r.hidden);
-			section.hidden = sectionRows.length > 0 && !anyVisible;
 		});
 
 		if (emptyMessage) emptyMessage.hidden = visibleCount > 0;
@@ -206,34 +141,6 @@ function externalHref(p: VaultEntry): string | undefined {
 	.filters button:hover {
 		color: var(--accent);
 		border-color: var(--accent);
-	}
-
-	.section {
-		margin: 2rem 0;
-	}
-
-	.section h2 {
-		margin: 0 0 0.75rem;
-		font-family: var(--font-display);
-		font-size: 0.9rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--muted);
-	}
-
-	.skimmed-collapse summary {
-		cursor: pointer;
-		font-family: var(--font-display);
-		font-size: 0.9rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--muted);
-	}
-
-	.skimmed-collapse .rows {
-		margin-top: 0.75rem;
 	}
 
 	.rows {

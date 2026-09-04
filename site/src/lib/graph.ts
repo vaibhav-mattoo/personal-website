@@ -26,8 +26,6 @@ export type GraphNode = {
 	/** 'orphan' | 'connected' for notes; 'synthesized' | 'real' for topics. */
 	status: string;
 	summary?: string;
-	/** Only for kind: 'paper' — drives opacity in the graph view. */
-	readingStatus?: 'to-read' | 'skimmed' | 'reading' | 'read';
 	/** Only for kind: 'paper' — the timeline toggle fixes x by this. */
 	year?: number;
 	/** Only for kind: 'topic' — its own area/course/paper-thread/scratch kind. */
@@ -52,7 +50,6 @@ export type GraphNoteEntry = {
 	tags: string[];
 	kind: string;
 	summary?: string;
-	status?: 'to-read' | 'skimmed' | 'reading' | 'read';
 	year?: number;
 };
 
@@ -106,7 +103,6 @@ export function buildGraphData(entries: GraphNoteEntry[], index: LinkIndex, tree
 			degree: d,
 			status: d === 0 ? 'orphan' : 'connected',
 			summary: e.summary,
-			readingStatus: e.kind === 'paper' ? e.status : undefined,
 			year: e.kind === 'paper' ? e.year : undefined,
 		};
 	});

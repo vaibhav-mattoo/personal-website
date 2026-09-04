@@ -3,24 +3,32 @@ import type { TopicNode } from '../lib/topics';
 
 interface Props {
 	node: TopicNode;
+	depth?: number;
+	/** Subtopics stay collapsed until you hover/focus the parent — used on
+	 * the /notes hub to keep it uncluttered. /notes/tags/ leaves this off so
+	 * its full tree stays scannable without relying on hover. */
+	hoverReveal?: boolean;
 }
 
-const { node } = Astro.props;
+const { node, depth = 0, hoverReveal = false } = Astro.props;
 const visibleChildren = node.children.filter((child) => !child.hidden);
+const d = Math.min(depth, 3);
 ---
 
-<li class="topic-node">
+<li class={`topic-node topic-node--d${d}`} data-hover-reveal={hoverReveal}>
 	<a class="topic-node__link" href={`/notes/tags/${node.id}/`}>
 		<span class="topic-node__title">{node.title}</span>
 		<span class="topic-node__count">{node.notes.length}</span>
 	</a>
 	{
 		visibleChildren.length > 0 && (
-			<ul class="topic-node__children">
-				{visibleChildren.map((child) => (
-					<Astro.self node={child} />
-				))}
-			</ul>
+			<div class="topic-node__children-outer">
+				<ul class="topic-node__children">
+					{visibleChildren.map((child) => (
+						<Astro.self node={child} depth={depth + 1} hoverReveal={hoverReveal} />
+					))}
+				</ul>
+			</div>
 		)
 	}
 </li>
@@ -32,7 +40,7 @@ const visibleChildren = node.children.filter((child) => !child.hidden);
 
 	.topic-node__link {
 		display: flex;
-		align-items: center;
+		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.5rem 0;
@@ -47,7 +55,22 @@ const visibleChildren = node.children.filter((child) => !child.hidden);
 
 	.topic-node__title {
 		font-family: var(--font-body);
+	}
+
+	.topic-node--d0 > .topic-node__link .topic-node__title {
+		font-size: 1.3rem;
+		font-weight: 700;
+	}
+
+	.topic-node--d1 > .topic-node__link .topic-node__title {
+		font-size: 1.05rem;
 		font-weight: 600;
+	}
+
+	.topic-node--d2 > .topic-node__link .topic-node__title,
+	.topic-node--d3 > .topic-node__link .topic-node__title {
+		font-size: 0.9rem;
+		font-weight: 500;
 	}
 
 	.topic-node__count {
@@ -60,10 +83,36 @@ const visibleChildren = node.children.filter((child) => !child.hidden);
 		margin: 0.25rem 0 0.5rem;
 		padding-left: 1.25rem;
 		list-style: none;
+		overflow: hidden;
+		min-height: 0;
 	}
 
 	.topic-node__children .topic-node__link {
 		border-bottom: none;
 		padding: 0.35rem 0;
+	}
+
+	/* Always-expanded (default): no extra wrapper behavior needed — the
+	   outer div just passes its child through, sized to content. */
+	.topic-node__children-outer {
+		display: grid;
+		grid-template-rows: 1fr;
+	}
+
+	/* Hover-reveal mode: subtopics collapse to zero height until the parent
+	   <li> is hovered or a child inside it gets keyboard focus. The 0fr/1fr
+	   grid-template-rows trick animates height without knowing it upfront. */
+	.topic-node[data-hover-reveal='true'] > .topic-node__children-outer {
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.2s ease;
+	}
+
+	.topic-node[data-hover-reveal='true']:hover > .topic-node__children-outer,
+	.topic-node[data-hover-reveal='true']:focus-within > .topic-node__children-outer {
+		grid-template-rows: 1fr;
+	}
+
+	.topic-node[data-hover-reveal='true'] > .topic-node__children-outer > .topic-node__children {
+		margin-top: 0;
 	}
 </style>

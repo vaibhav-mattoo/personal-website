@@ -46,7 +46,6 @@ const notes = defineCollection({
 			// separate `papers` collection: a paper is just a note with these
 			// fields filled in, filed under content/notes/lit/ by convention
 			// only — nothing in the code depends on that path.
-			status: z.enum(['to-read', 'skimmed', 'reading', 'read']).default('to-read'),
 			rating: z.number().min(1).max(5).optional(),
 			added: z.coerce.date().optional(),
 			authors: z.array(z.string()).default([]),
