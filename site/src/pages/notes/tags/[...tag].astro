@@ -4,9 +4,6 @@ import Base from '../../../layouts/Base.astro';
 import TerminalPrompt from '../../../components/TerminalPrompt.astro';
 import { getPublicNoteEntries, getTopicTree } from '../../../lib/topicVault';
 import { orderNotes, tagAncestors } from '../../../lib/topics';
-import { coverageStats } from '../../../lib/reading';
-import { getPublicVault } from '../../../lib/vault';
-import type { VaultEntry } from '../../../lib/vault';
 import '../../../styles/prose.css';
 
 export async function getStaticPaths() {
@@ -34,16 +31,6 @@ const childTopics = node.children.filter((child) => !child.hidden);
 // covers that case; `node.notes` alone would silently drop it).
 const allNotes = await getPublicNoteEntries();
 const { sequenced, rest } = orderNotes(node, allNotes, node.notes);
-
-// Coverage stats: only for this topic's own paper notes (kind: 'paper'),
-// cross-referencing the vault for status/added/updated that topics.ts's
-// plain NoteEntry doesn't carry. Rendered only when there's at least one.
-const { entries: vaultEntries } = await getPublicVault();
-const vaultById = new Map(vaultEntries.map((e) => [e.id, e]));
-const paperEntries = node.notes
-	.map((n) => vaultById.get(n.id))
-	.filter((e): e is VaultEntry => e !== undefined && e.kind === 'paper');
-const stats = paperEntries.length > 0 ? coverageStats(paperEntries) : null;
 
 // Only a real topic file has a body worth rendering — synthesized nodes
 // (a tag with no matching topic file) have nothing to render here, per spec:
@@ -101,36 +88,6 @@ if (!node.synthesized) {
 						</li>
 					))}
 				</ul>
-			</section>
-		)
-	}
-
-	{
-		stats && (
-			<section class="section coverage">
-				<h2>Reading coverage</h2>
-				<p class="coverage__line">
-					{stats.read}/{stats.total} read
-					{stats.lastActivity && ` · last activity ${stats.lastActivity.toLocaleDateString()}`}
-				</p>
-				<dl class="coverage__breakdown">
-					<div>
-						<dt>To read</dt>
-						<dd>{stats.toRead}</dd>
-					</div>
-					<div>
-						<dt>Reading</dt>
-						<dd>{stats.reading}</dd>
-					</div>
-					<div>
-						<dt>Skimmed</dt>
-						<dd>{stats.skimmed}</dd>
-					</div>
-					<div>
-						<dt>Read</dt>
-						<dd>{stats.read}</dd>
-					</div>
-				</dl>
 			</section>
 		)
 	}
@@ -234,33 +191,6 @@ if (!node.synthesized) {
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 		color: var(--muted);
-	}
-	.coverage__line {
-		margin: 0 0 0.5rem;
-		font-family: var(--font-body);
-		color: var(--fg);
-	}
-	.coverage__breakdown {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1.25rem;
-		margin: 0;
-	}
-	.coverage__breakdown > div {
-		display: flex;
-		align-items: baseline;
-		gap: 0.35rem;
-	}
-	.coverage__breakdown dt {
-		font-family: var(--font-display);
-		font-size: 0.78rem;
-		color: var(--muted);
-	}
-	.coverage__breakdown dd {
-		margin: 0;
-		font-family: var(--font-display);
-		font-weight: 600;
-		color: var(--fg);
 	}
 	.tiles {
 		display: grid;

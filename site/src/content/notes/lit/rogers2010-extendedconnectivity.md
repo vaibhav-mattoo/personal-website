@@ -3,7 +3,6 @@ title: "Extended-Connectivity Fingerprints"
 date: 2026-09-03
 added: 2026-09-03
 kind: paper
-status: to-read
 authors:
   - "David Rogers"
   - "Mathew Hahn"

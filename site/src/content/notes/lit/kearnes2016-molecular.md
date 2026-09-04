@@ -3,7 +3,6 @@ title: "Molecular graph convolutions: moving beyond fingerprints"
 date: 2026-09-03
 added: 2026-09-03
 kind: paper
-status: to-read
 authors:
   - "Steven Kearnes"
   - "Kevin McCloskey"
