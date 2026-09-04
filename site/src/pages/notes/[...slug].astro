@@ -19,10 +19,17 @@ import '../../styles/prose.css';
 
 export async function getStaticPaths() {
 	const notes = await getCollection('notes');
-	return notes.map((note) => ({
-		params: { slug: note.id },
-		props: { note },
-	}));
+	// A shared note gets exactly one page, at /s/<share>/ (see
+	// pages/s/[token].astro) — never also here at its guessable /notes/<id>/
+	// URL, or the whole point of an unguessable link is defeated. Drafts are
+	// unaffected: they still build here (isVisible only hides them from
+	// listings), same as before this existed.
+	return notes
+		.filter((note) => !note.data.share)
+		.map((note) => ({
+			params: { slug: note.id },
+			props: { note },
+		}));
 }
 
 interface Props {

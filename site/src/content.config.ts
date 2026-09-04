@@ -16,6 +16,19 @@ const notes = defineCollection({
 			tags: z.array(z.string()).default([]),
 			draft: z.boolean().default(false),
 			aliases: z.array(z.string()).default([]),
+			// An unguessable capability token (crypto.randomBytes(16).toString
+			// ('hex'), see scripts/new-share.mjs) — presence alone means "never
+			// in a public listing" (isVisible, site/src/lib/visibility.ts). The
+			// only place a shared note is reachable is /s/<share>/
+			// (site/src/pages/s/[token].astro). See docs/sharing.md.
+			share: z
+				.string()
+				.regex(/^[0-9a-f]{32}$/, 'share must be a 32-char lowercase hex token')
+				.optional(),
+			// Past this date, /s/<share>/ stops being built — the link goes
+			// dead. Does not affect listing visibility: a note with `share` set
+			// is already excluded from those regardless of expiry.
+			shareUntil: z.coerce.date().optional(),
 			kind: z.enum(['note', 'concept', 'experiment', 'review', 'idea', 'paper']).default('note'),
 			relations: z
 				.array(

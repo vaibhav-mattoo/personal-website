@@ -7,13 +7,15 @@
   },
   "scripts": {
     "dev": "rm -f .astro/data-store.json && astro sync && astro dev --host 127.0.0.1 --port 4321",
-    "build": "astro build",
+    "build": "astro build && node scripts/leak-check.mjs",
     "check": "astro check",
     "preview": "astro preview",
     "links": "node scripts/link-report.mjs",
     "links:strict": "node scripts/link-report.mjs --strict",
     "lit:add": "node scripts/lit-add.mjs",
     "lit:cites": "node scripts/lit-cites.mjs",
+    "leak-check": "node scripts/leak-check.mjs",
+    "new-share": "node scripts/new-share.mjs",
     "astro": "astro"
   },
   "dependencies": {

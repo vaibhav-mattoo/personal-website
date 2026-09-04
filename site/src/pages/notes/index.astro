@@ -1,10 +1,12 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { getCollection } from 'astro:content';
+import { getPublicVault } from '../../lib/vault';
 
-const notes = (await getCollection('notes')).sort(
-	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
-);
+// getPublicVault(), not getCollection('notes') directly — this is a public
+// listing, so it must go through isVisible() like every other one (drafts
+// hidden outside dev, shared notes never listed here at all).
+const { entries } = await getPublicVault();
+const notes = entries.sort((a, b) => b.date.valueOf() - a.date.valueOf());
 ---
 
 <Base title="Notes">
@@ -25,11 +27,11 @@ const notes = (await getCollection('notes')).sort(
 			notes.map((note) => (
 				<li>
 					<a href={`/notes/${note.id}/`}>
-						<span class="list__title">{note.data.title}</span>
-						<time datetime={note.data.date.toISOString()} class="list__date">
-							{note.data.date.toLocaleDateString()}
+						<span class="list__title">{note.title}</span>
+						<time datetime={note.date.toISOString()} class="list__date">
+							{note.date.toLocaleDateString()}
 						</time>
-						{note.data.summary && <span class="list__summary">{note.data.summary}</span>}
+						{note.summary && <span class="list__summary">{note.summary}</span>}
 					</a>
 				</li>
 			))

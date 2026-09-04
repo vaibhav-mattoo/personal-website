@@ -1,0 +1,111 @@
+---
+import { type CollectionEntry, getCollection, render } from 'astro:content';
+import readingTime from 'reading-time';
+import Base from '../../layouts/Base.astro';
+import NoteMeta from '../../components/NoteMeta.astro';
+import Toc from '../../components/Toc.astro';
+import Comments from '../../components/Comments.astro';
+import '../../styles/docs.css';
+import '../../styles/prose.css';
+
+// The one legitimate direct getCollection('notes') call outside vault.ts —
+// this route exists specifically to serve notes that isVisible() (and so
+// getPublicVault()) deliberately excludes. Routing it through
+// getPublicVault() would be exactly backwards: it would make every shared
+// note 404.
+export async function getStaticPaths() {
+	const notes = await getCollection('notes');
+	const now = Date.now();
+	return notes
+		.filter((note) => note.data.share && (!note.data.shareUntil || note.data.shareUntil.valueOf() > now))
+		.map((note) => ({
+			params: { token: note.data.share },
+			props: { note },
+		}));
+}
+
+interface Props {
+	note: CollectionEntry<'notes'>;
+}
+
+const { note } = Astro.props;
+const { Content, headings } = await render(note);
+
+const words = (note.body ?? '').trim().split(/\s+/).filter(Boolean).length;
+const stats = readingTime(note.body ?? '');
+const minutes = Math.max(1, Math.ceil(stats.minutes));
+
+// Deliberately NOT computed/rendered here, unlike the normal note page:
+//   - backlinks (who links to this note)
+//   - the local graph (rail + Toc popover — so no `localGraph` prop below)
+//   - sequence prev/next ("Part N of M", names sibling notes in a topic)
+// Any of these would reveal notes/topics that exist elsewhere in the vault.
+// Toc itself is kept — it only links to this page's own headings.
+---
+
+<Base title={note.data.title} docs>
+	<Fragment slot="head">
+		<meta name="robots" content="noindex, nofollow" />
+	</Fragment>
+
+	<div class="docs">
+		<Toc headings={headings} />
+
+		<article class="docs__main" data-pagefind-ignore>
+			<header class="note-head">
+				<p class="note-head__badge">Shared privately — not listed anywhere on this site</p>
+				<h1>{note.data.title}</h1>
+				{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
+				<NoteMeta date={note.data.date} minutes={minutes} words={words} />
+			</header>
+
+			<div class="prose docs__prose">
+				<Content />
+			</div>
+
+			<Comments />
+		</article>
+	</div>
+</Base>
+
+<script>
+	import mediumZoom from 'medium-zoom';
+	mediumZoom('.prose img', {
+		margin: 24,
+		background: 'rgba(0,0,0,0.85)',
+	});
+</script>
+
+<style>
+	.note-head {
+		margin: 0 0 0.5rem;
+	}
+
+	.note-head__badge {
+		display: inline-block;
+		margin: 0 0 0.75rem;
+		padding: 0.25rem 0.6rem;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--card);
+		color: var(--muted);
+		font-family: var(--font-display);
+		font-size: 0.75rem;
+	}
+
+	.note-head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(1.75rem, 4vw, 2.5rem);
+		line-height: 1.15;
+		letter-spacing: -0.02em;
+	}
+
+	.note-head__summary {
+		margin: 0 0 0.75rem;
+		color: var(--muted);
+		font-size: 1.05rem;
+		line-height: 1.6;
+	}
+</style>
