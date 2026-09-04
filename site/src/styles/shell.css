@@ -1,9 +1,7 @@
 :root {
 	--toolbar-top: 1rem;
 	--toolbar-btn: 38px;
-	--sheet-gap: 0.65rem;
 	--sheet-inset-x: 0.75rem;
-	--sheet-inset-bottom: 1rem;
 }
 
 .shell {

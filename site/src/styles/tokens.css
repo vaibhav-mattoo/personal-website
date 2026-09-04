@@ -10,7 +10,9 @@
 	--toc-width: 268px;
 	--content-width: 900px;
 	--toolbar-h: calc(var(--toolbar-top) + var(--toolbar-btn));
-	--docs-sticky-top: calc(var(--toolbar-h) + 0.5rem);
+	/* Bottom padding matches --toolbar-top so the toolbar row sits centered
+	   (not just top-anchored) inside the .toolbar-backdrop band. */
+	--docs-sticky-top: calc(var(--toolbar-h) + var(--toolbar-top));
 	--toc-popover-h: 2.5rem;
 }
 

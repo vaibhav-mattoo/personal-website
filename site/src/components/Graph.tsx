@@ -37,9 +37,8 @@ export interface GraphProps {
 	 */
 	highlightIds?: readonly string[];
 	/**
-	 * Fixes every paper node's x by `year` (a year axis along the bottom),
-	 * leaving the force simulation to lay out y only. Non-paper nodes and
-	 * papers with no year float freely, unpinned.
+	 * Fixes every note node's x by its `date`, leaving the force simulation
+	 * to lay out y only. Topic nodes (no `date`) float freely, unpinned.
 	 */
 	timeline?: boolean;
 }
@@ -174,35 +173,41 @@ function drawShape(
 
 export const EDGE_LEGEND_ORDER = ['link', 'extends', 'contradicts', 'cites', 'topic'];
 
-/** Maps a year range to a fixed simulation-space x range for timeline mode. */
-function makeYearScale(minYear: number, maxYear: number): (year: number) => number {
-	if (minYear === maxYear) return () => 0;
-	return (year: number) => ((year - minYear) / (maxYear - minYear)) * 600 - 300;
+/** Maps a [minTime, maxTime] epoch-ms range to a fixed simulation-space x range for timeline mode. */
+function makeTimeScale(minTime: number, maxTime: number): (time: number) => number {
+	if (minTime === maxTime) return () => 0;
+	return (time: number) => ((time - minTime) / (maxTime - minTime)) * 600 - 300;
+}
+
+function parseNodeTime(node: SimNode): number | undefined {
+	if (!node.date) return undefined;
+	const t = Date.parse(node.date);
+	return Number.isNaN(t) ? undefined : t;
 }
 
 /**
- * Timeline mode: fixes x by year for every node that has one (force-graph
+ * Timeline mode: fixes x by date for every node that has one (force-graph
  * respects `fx` regardless of the simulation's other forces, so y stays
  * free). Disabling clears `fx` so the simulation is free to re-lay-out x
- * too. Returns the [min, max] year range for axis drawing, or null.
+ * too.
  */
-function pinNodesByYear(nodes: SimNode[], enabled: boolean): [number, number] | null {
+function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
 	if (!enabled) {
 		for (const n of nodes) n.fx = undefined;
-		return null;
+		return;
 	}
-	const years = nodes.map((n) => n.year).filter((y): y is number => y !== undefined);
-	if (years.length === 0) {
+	const times = nodes.map(parseNodeTime).filter((t): t is number => t !== undefined);
+	if (times.length === 0) {
 		for (const n of nodes) n.fx = undefined;
-		return null;
+		return;
 	}
-	const minYear = Math.min(...years);
-	const maxYear = Math.max(...years);
-	const scale = makeYearScale(minYear, maxYear);
+	const minTime = Math.min(...times);
+	const maxTime = Math.max(...times);
+	const scale = makeTimeScale(minTime, maxTime);
 	for (const n of nodes) {
-		n.fx = n.year !== undefined ? scale(n.year) : undefined;
+		const t = parseNodeTime(n);
+		n.fx = t !== undefined ? scale(t) : undefined;
 	}
-	return [minYear, maxYear];
 }
 
 /**
@@ -271,7 +276,6 @@ export default function Graph({
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
 	const timelineRef = useRef(timeline);
-	const yearRangeRef = useRef<[number, number] | null>(null);
 	const zoomedOnceRef = useRef(false);
 	const [interacted, setInteracted] = useState(false);
 
@@ -288,7 +292,7 @@ export default function Graph({
 	useEffect(() => {
 		graphDataRef.current = graphData;
 		fgRef.current?.graphData({ nodes: graphData.nodes, links: graphData.edges });
-		yearRangeRef.current = pinNodesByYear(graphData.nodes, timelineRef.current);
+		pinNodesByDate(graphData.nodes, timelineRef.current);
 		if (timelineRef.current) fgRef.current?.d3ReheatSimulation();
 	}, [graphData]);
 
@@ -302,7 +306,7 @@ export default function Graph({
 
 	useEffect(() => {
 		timelineRef.current = timeline;
-		yearRangeRef.current = pinNodesByYear(graphDataRef.current.nodes, timeline);
+		pinNodesByDate(graphDataRef.current.nodes, timeline);
 		fgRef.current?.d3ReheatSimulation();
 	}, [timeline]);
 
@@ -414,38 +418,6 @@ export default function Graph({
 					zoomedOnceRef.current = true;
 					fitToContent(fg, graphDataRef.current.nodes, 400);
 				})
-				.onRenderFramePost((ctx) => {
-					if (!timelineRef.current || !yearRangeRef.current || !fg) return;
-					const [minYear, maxYear] = yearRangeRef.current;
-					const scale = makeYearScale(minYear, maxYear);
-					const width = fg.width();
-					const height = fg.height();
-					const axisY = height - 22;
-					const tickCount = Math.min(6, Math.max(1, maxYear - minYear));
-
-					ctx.save();
-					ctx.setTransform(1, 0, 0, 1, 0, 0);
-					ctx.strokeStyle = colorsRef.current.border;
-					ctx.fillStyle = colorsRef.current.muted;
-					ctx.font = `11px ${colorsRef.current.fontFamily}`;
-					ctx.textAlign = 'center';
-					ctx.lineWidth = 1;
-					ctx.beginPath();
-					ctx.moveTo(0, axisY);
-					ctx.lineTo(width, axisY);
-					ctx.stroke();
-
-					for (let i = 0; i <= tickCount; i++) {
-						const year = Math.round(minYear + ((maxYear - minYear) * i) / tickCount);
-						const screen = fg.graph2ScreenCoords(scale(year), 0);
-						ctx.beginPath();
-						ctx.moveTo(screen.x, axisY - 4);
-						ctx.lineTo(screen.x, axisY + 4);
-						ctx.stroke();
-						ctx.fillText(String(year), screen.x, axisY + 16);
-					}
-					ctx.restore();
-				})
 				.enableNodeDrag(true)
 				// force-graph's default cooldownTime is 15s — with d3AlphaMin at
 				// its own default of 0, that's also the only thing that ends the
@@ -461,7 +433,7 @@ export default function Graph({
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });
-			yearRangeRef.current = pinNodesByYear(graphDataRef.current.nodes, timelineRef.current);
+			pinNodesByDate(graphDataRef.current.nodes, timelineRef.current);
 
 			const resize = () => {
 				const rect = el.getBoundingClientRect();
