@@ -13,6 +13,8 @@
     "links:strict": "npm run links:strict -w site",
     "lit:add": "npm run lit:add -w site --",
     "lit:cites": "npm run lit:cites -w site --",
+    "leak-check": "npm run leak-check -w site",
+    "new-share": "npm run new-share -w site",
     "test": "node --test site/test",
     "up": "docker compose up --build"
   }
