@@ -72,7 +72,7 @@ export default defineConfig({
 			hooks: {
 				'astro:build:done': async () => {
 					try {
-						const { brokenLinks, brokenSequences, brokenParents, untopiced, untaggedSequences } =
+						const { brokenLinks, brokenSequences, brokenParents, untopiced, untaggedSequences, uncitedTargets } =
 							await runLinkReport();
 						const brokenCount = brokenLinks.length + brokenSequences.length + brokenParents.length;
 
@@ -95,12 +95,23 @@ export default defineConfig({
 								console.warn(`  topic:${topic} -> ${id}`);
 							}
 						}
+						if (uncitedTargets.length > 0) {
+							console.warn('[link-report] cites entries with no matching note yet:');
+							for (const { source, target } of uncitedTargets) {
+								console.warn(`  ${source} -> ${target}`);
+							}
+						}
 						if (untopiced.length > 0) {
 							console.warn(
 								`[link-report] tags with no topic file: ${untopiced.join(', ')}`,
 							);
 						}
-						if (brokenCount > 0 || untopiced.length > 0 || untaggedSequences.length > 0) {
+						if (
+							brokenCount > 0 ||
+							untopiced.length > 0 ||
+							untaggedSequences.length > 0 ||
+							uncitedTargets.length > 0
+						) {
 							console.warn('');
 						}
 					} catch (err) {

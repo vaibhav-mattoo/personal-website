@@ -1,0 +1,77 @@
+---
+import type { VaultEntry } from '../lib/vault';
+
+interface Props {
+	paper: VaultEntry;
+	externalHref?: string;
+}
+
+const { paper, externalHref } = Astro.props;
+const authorsLine = paper.authors.length > 0 ? paper.authors.join(', ') : undefined;
+---
+
+<li
+	class="row"
+	data-row
+	data-venue={paper.venue ?? ''}
+	data-year={paper.year ?? ''}
+	data-status={paper.status}
+	data-topics={paper.tags.join('|')}
+>
+	<a class="row__title" href={`/notes/${paper.id}/`}>{paper.title}</a>
+	<span class="row__meta">
+		{authorsLine && <span class="row__authors">{authorsLine}</span>}
+		{paper.year !== undefined && <span class="row__year">{paper.year}</span>}
+		{paper.venue && <span class="row__venue">{paper.venue}</span>}
+	</span>
+	{
+		externalHref && (
+			<a class="row__external" href={externalHref} target="_blank" rel="noopener">
+				Source ↗
+			</a>
+		)
+	}
+</li>
+
+<style>
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.5rem 0.75rem;
+		padding: 0.75rem 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.row__title {
+		font-family: var(--font-body);
+		font-weight: 600;
+		color: var(--fg);
+		text-decoration: none;
+	}
+
+	.row__title:hover {
+		color: var(--accent);
+	}
+
+	.row__meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 0.5rem;
+		font-family: var(--font-display);
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.row__external {
+		margin-left: auto;
+		font-family: var(--font-display);
+		font-size: 0.8rem;
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.row__external:hover {
+		color: var(--accent);
+	}
+</style>

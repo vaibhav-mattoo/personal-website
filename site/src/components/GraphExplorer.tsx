@@ -9,6 +9,7 @@ const EDGE_LEGEND_LABEL: Record<string, string> = {
 	link: 'Link',
 	extends: 'Extends',
 	contradicts: 'Contradicts',
+	cites: 'Cites',
 	topic: 'Topic',
 };
 
@@ -16,19 +17,30 @@ const EDGE_LEGEND_DASH: Record<string, string> = {
 	link: 'none',
 	extends: '4,4',
 	contradicts: '1,3',
+	cites: '8,3,2,3',
 	topic: '2,5',
 };
 
 function legendEntryFor(type: string) {
 	return {
 		label: EDGE_LEGEND_LABEL[type] ?? type,
-		dash: EDGE_LEGEND_DASH[type] ?? '6,2,1,2',
+		dash: EDGE_LEGEND_DASH[type] ?? '6,2',
 	};
 }
 
 export default function GraphExplorer({ data }: GraphExplorerProps) {
 	const [query, setQuery] = useState('');
 	const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
+	const [timelineOverride, setTimelineOverride] = useState<boolean | null>(null);
+
+	// Timeline defaults on when exactly one topic is active and it's a
+	// paper-thread — otherwise off, unless the user has explicitly toggled it.
+	const activeTopicKind = useMemo(() => {
+		if (selectedTopics.size !== 1) return undefined;
+		const [id] = selectedTopics;
+		return data.nodes.find((n) => n.id === id)?.topicKind;
+	}, [data, selectedTopics]);
+	const timeline = timelineOverride ?? activeTopicKind === 'paper-thread';
 
 	const topLevelTopics = useMemo(() => {
 		const ids = new Set<string>();
@@ -57,6 +69,7 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 	}, [data, selectedTopics]);
 
 	function toggleTopic(id: string) {
+		setTimelineOverride(null);
 		setSelectedTopics((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
@@ -92,15 +105,27 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 						<button
 							type="button"
 							className="graph-explorer__chip graph-explorer__chip--clear"
-							onClick={() => setSelectedTopics(new Set())}
+							onClick={() => {
+								setTimelineOverride(null);
+								setSelectedTopics(new Set());
+							}}
 						>
 							Clear
 						</button>
 					)}
 				</div>
+				<button
+					type="button"
+					className="graph-explorer__chip graph-explorer__timeline"
+					data-active={timeline}
+					onClick={() => setTimelineOverride(!timeline)}
+					aria-pressed={timeline}
+				>
+					Timeline
+				</button>
 			</div>
 
-			<Graph data={filtered} highlightQuery={query} />
+			<Graph data={filtered} highlightQuery={query} timeline={timeline} />
 
 			<div className="graph-explorer__legend" aria-label="Edge style legend">
 				{edgeTypesPresent.map((type) => {
