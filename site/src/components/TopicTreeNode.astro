@@ -5,8 +5,8 @@ interface Props {
 	node: TopicNode;
 	depth?: number;
 	/** Subtopics stay collapsed until you hover/focus the parent — used on
-	 * the /notes hub to keep it uncluttered. /notes/tags/ leaves this off so
-	 * its full tree stays scannable without relying on hover. */
+	 * the /notes hub, the only place this component renders now, to keep
+	 * the topic list uncluttered while still showing the full tree. */
 	hoverReveal?: boolean;
 }
 
@@ -16,7 +16,7 @@ const d = Math.min(depth, 3);
 ---
 
 <li class={`topic-node topic-node--d${d}`} data-hover-reveal={hoverReveal}>
-	<a class="topic-node__link" href={`/notes/tags/${node.id}/`}>
+	<a class="topic-node__link" href={`/notes/topics/${node.id}/`}>
 		<span class="topic-node__title">{node.title}</span>
 		<span class="topic-node__count">{node.notes.length}</span>
 	</a>
@@ -101,15 +101,19 @@ const d = Math.min(depth, 3);
 
 	/* Hover-reveal mode: subtopics collapse to zero height until the parent
 	   <li> is hovered or a child inside it gets keyboard focus. The 0fr/1fr
-	   grid-template-rows trick animates height without knowing it upfront. */
+	   grid-template-rows trick animates height without knowing it upfront.
+	   The collapse transition carries a delay (but the expand one doesn't) so
+	   briefly overshooting the row while moving the mouse doesn't slam it
+	   shut — re-entering within the delay window cancels the collapse. */
 	.topic-node[data-hover-reveal='true'] > .topic-node__children-outer {
 		grid-template-rows: 0fr;
-		transition: grid-template-rows 0.2s ease;
+		transition: grid-template-rows 0.25s ease 0.35s;
 	}
 
 	.topic-node[data-hover-reveal='true']:hover > .topic-node__children-outer,
 	.topic-node[data-hover-reveal='true']:focus-within > .topic-node__children-outer {
 		grid-template-rows: 1fr;
+		transition: grid-template-rows 0.15s ease;
 	}
 
 	.topic-node[data-hover-reveal='true'] > .topic-node__children-outer > .topic-node__children {

@@ -6,7 +6,7 @@
 // once before hydrating); (2) it keeps force-graph out of any page's
 // initial JS graph entirely — only fetched once a Graph actually mounts.
 import type ForceGraphCtor from 'force-graph';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { neighborhood } from '../lib/links';
 import type { GraphData, GraphEdge, GraphNode } from '../lib/graph';
 
@@ -106,6 +106,11 @@ function readThemeColors() {
 		muted: read('--muted', '#888'),
 		border: read('--border', '#ccc'),
 		accent: read('--accent', '#2f71b4'),
+		card: read('--card', '#fff'),
+		// Canvas's ctx.font is a plain CSS-font-shorthand string, not a real
+		// style property — it never resolves var(), so the custom property
+		// has to be read to its literal value here and interpolated as text.
+		fontFamily: read('--font-display', 'ui-monospace, monospace'),
 	};
 }
 
@@ -194,14 +199,67 @@ function pinNodesByYear(nodes: SimNode[], enabled: boolean): [number, number] | 
 	return [minYear, maxYear];
 }
 
+/**
+ * Replaces force-graph's built-in zoomToFit, which only measures node
+ * *positions* — topic nodes render as text well outside their tiny point
+ * radius, so the built-in fit crops labels no matter how much padding is
+ * given. This measures each node's actual drawn extent (text bounds for
+ * topics, radius for everything else) and fits the camera to that instead.
+ */
+function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
+	if (nodes.length === 0) return;
+	let minX = Infinity;
+	let maxX = -Infinity;
+	let minY = Infinity;
+	let maxY = -Infinity;
+	for (const n of nodes) {
+		const x = n.x ?? 0;
+		const y = n.y ?? 0;
+		let halfW: number;
+		let halfH: number;
+		if (n.kind === 'topic') {
+			const size = topicFontSize(n);
+			// Rough monospace glyph-width estimate — avoids needing a canvas
+			// context just to measure text here.
+			halfW = (n.title.length * size * 0.32) + 8;
+			halfH = size / 2 + 6;
+		} else {
+			halfW = nodeRadius(n) + 8;
+			halfH = halfW;
+		}
+		minX = Math.min(minX, x - halfW);
+		maxX = Math.max(maxX, x + halfW);
+		minY = Math.min(minY, y - halfH);
+		maxY = Math.max(maxY, y + halfH);
+	}
+
+	const width = fg.width();
+	const height = fg.height();
+	const bboxW = Math.max(maxX - minX, 1);
+	const bboxH = Math.max(maxY - minY, 1);
+	const padding = 24;
+	const k = Math.min((width - padding * 2) / bboxW, (height - padding * 2) / bboxH, 6);
+
+	fg.centerAt((minX + maxX) / 2, (minY + maxY) / 2, ms);
+	fg.zoom(k, ms);
+}
+
 export default function Graph({ data, focusId, depth = 1, highlightQuery, timeline = false }: GraphProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const fgRef = useRef<FG | null>(null);
-	const colorsRef = useRef<ThemeColors>({ fg: '#222', muted: '#888', border: '#ccc', accent: '#2f71b4' });
+	const colorsRef = useRef<ThemeColors>({
+		fg: '#222',
+		muted: '#888',
+		border: '#ccc',
+		accent: '#2f71b4',
+		card: '#fff',
+		fontFamily: 'ui-monospace, monospace',
+	});
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const timelineRef = useRef(timeline);
 	const yearRangeRef = useRef<[number, number] | null>(null);
 	const zoomedOnceRef = useRef(false);
+	const [interacted, setInteracted] = useState(false);
 
 	const graphData = useMemo(() => {
 		if (!focusId) return data;
@@ -238,6 +296,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 		let fg: FG | null = null;
 		let resizeObserver: ResizeObserver | null = null;
 		let themeObserver: MutationObserver | null = null;
+		let gestureCleanup: (() => void) | null = null;
 
 		import('force-graph').then(({ default: ForceGraph }) => {
 			if (disposed) return;
@@ -276,7 +335,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 						const size = topicFontSize(node);
 						ctx.save();
 						ctx.globalAlpha = faded ? 0.55 : 1;
-						ctx.font = `${faded ? '' : '600 '}${size}px var(--font-display, ui-monospace, monospace)`;
+						ctx.font = `${faded ? '' : '600 '}${size}px ${colorsRef.current.fontFamily}`;
 						ctx.textAlign = 'center';
 						ctx.textBaseline = 'middle';
 						if (highlighted) {
@@ -318,7 +377,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 
 					if (node.kind === 'topic') {
 						const size = topicFontSize(node);
-						ctx.font = `${size}px var(--font-display, ui-monospace, monospace)`;
+						ctx.font = `${size}px ${colorsRef.current.fontFamily}`;
 						const width = ctx.measureText(node.title).width;
 						ctx.fillRect(x - width / 2 - 3, y - size / 2 - 2, width + 6, size + 4);
 						return;
@@ -328,13 +387,13 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 					ctx.fill();
 				})
 				.onNodeClick((node) => {
-					const href = node.kind === 'topic' ? `/notes/tags/${node.id}/` : `/notes/${node.id}/`;
+					const href = node.kind === 'topic' ? `/notes/topics/${node.id}/` : `/notes/${node.id}/`;
 					window.location.href = href;
 				})
 				.onEngineStop(() => {
 					if (zoomedOnceRef.current || !fg) return;
 					zoomedOnceRef.current = true;
-					fg.zoomToFit(400, 40);
+					fitToContent(fg, graphDataRef.current.nodes, 400);
 				})
 				.onRenderFramePost((ctx) => {
 					if (!timelineRef.current || !yearRangeRef.current || !fg) return;
@@ -349,7 +408,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 					ctx.setTransform(1, 0, 0, 1, 0, 0);
 					ctx.strokeStyle = colorsRef.current.border;
 					ctx.fillStyle = colorsRef.current.muted;
-					ctx.font = '11px var(--font-display, monospace)';
+					ctx.font = `11px ${colorsRef.current.fontFamily}`;
 					ctx.textAlign = 'center';
 					ctx.lineWidth = 1;
 					ctx.beginPath();
@@ -368,7 +427,13 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 					}
 					ctx.restore();
 				})
-				.enableNodeDrag(true);
+				.enableNodeDrag(true)
+				// force-graph's default cooldownTime is 15s — with d3AlphaMin at
+				// its own default of 0, that's also the only thing that ends the
+				// simulation, so onEngineStop (and the initial fit-to-content it
+				// triggers) wouldn't fire until then. These graphs are small
+				// enough to visually settle in well under a second.
+				.cooldownTime(1500);
 
 			// More breathing room than the library defaults: stronger repulsion
 			// and longer link distance so clusters separate instead of clumping.
@@ -398,12 +463,50 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 				attributes: true,
 				attributeFilter: ['data-mode', 'data-scheme'],
 			});
+
+			// Reset-view button visibility: driven by real gestures on the
+			// canvas, not force-graph's onZoom (which also fires from the
+			// library's own resize/fit calls, with no way to tell those apart
+			// from a user's wheel or drag).
+			const onWheel = () => setInteracted(true);
+			let dragStart: { x: number; y: number } | null = null;
+			const onPointerDown = (e: PointerEvent) => {
+				dragStart = { x: e.clientX, y: e.clientY };
+			};
+			const onPointerMove = (e: PointerEvent) => {
+				if (!dragStart) return;
+				const moved = Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y);
+				if (moved > 5) {
+					setInteracted(true);
+					dragStart = null;
+				}
+			};
+			const onPointerUp = () => {
+				dragStart = null;
+			};
+			// Capture phase: force-graph's own d3-zoom wheel handler on the
+			// canvas calls stopPropagation(), so a bubble-phase listener here
+			// would never see it.
+			el.addEventListener('wheel', onWheel, { passive: true, capture: true });
+			el.addEventListener('pointerdown', onPointerDown);
+			el.addEventListener('pointermove', onPointerMove);
+			el.addEventListener('pointerup', onPointerUp);
+			el.addEventListener('pointerleave', onPointerUp);
+
+			gestureCleanup = () => {
+				el.removeEventListener('wheel', onWheel, { capture: true });
+				el.removeEventListener('pointerdown', onPointerDown);
+				el.removeEventListener('pointermove', onPointerMove);
+				el.removeEventListener('pointerup', onPointerUp);
+				el.removeEventListener('pointerleave', onPointerUp);
+			};
 		});
 
 		return () => {
 			disposed = true;
 			resizeObserver?.disconnect();
 			themeObserver?.disconnect();
+			gestureCleanup?.();
 			fg?._destructor();
 			fgRef.current = null;
 		};
@@ -422,5 +525,21 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 		fg.nodeColor(fg.nodeColor());
 	}, [highlightQuery]);
 
-	return <div ref={containerRef} className="graph-canvas" />;
+	function handleReset() {
+		const fg = fgRef.current;
+		if (!fg) return;
+		fitToContent(fg, graphDataRef.current.nodes, 400);
+		setInteracted(false);
+	}
+
+	return (
+		<div style={{ position: 'relative' }}>
+			<div ref={containerRef} className="graph-canvas" />
+			{interacted && (
+				<button type="button" className="graph-reset-btn" onClick={handleReset}>
+					Reset view
+				</button>
+			)}
+		</div>
+	);
 }

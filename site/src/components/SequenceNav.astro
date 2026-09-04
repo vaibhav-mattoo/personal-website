@@ -21,7 +21,7 @@ const { sequences } = Astro.props;
 			{sequences.map((seq) => (
 				<div class="sequence-nav__item">
 					<div class="sequence-nav__head">
-						<a class="sequence-nav__topic" href={`/notes/tags/${seq.topicId}/`}>
+						<a class="sequence-nav__topic" href={`/notes/topics/${seq.topicId}/`}>
 							{seq.topicTitle}
 						</a>
 						<span class="sequence-nav__part">

@@ -33,9 +33,7 @@ const graphData = await getGraphData();
 		roots.length > 0 && (
 			<section class="section">
 				<h2>Topics</h2>
-				<p class="section__hint">
-					Hover a topic to see its subtopics. <a href="/notes/tags/">Full tree →</a>
-				</p>
+				<p class="section__hint">Hover a topic to see its subtopics.</p>
 				<ul class="topic-tree">
 					{roots.map((node) => (
 						<TopicTreeNode node={node} hoverReveal />
@@ -57,11 +55,14 @@ const graphData = await getGraphData();
 				<ul class="recent__list">
 					{recentNotes.map((note) => (
 						<li>
-							<a href={`/notes/${note.id}/`}>
-								<span class="recent__title">{note.title}</span>
-								<time datetime={note.date.toISOString()} class="recent__date">
-									{note.date.toLocaleDateString()}
-								</time>
+							<a href={`/notes/${note.id}/`} class="recent__item">
+								<span class="recent__row">
+									<span class="recent__title">{note.title}</span>
+									<time datetime={note.date.toISOString()} class="recent__date">
+										{note.date.toLocaleDateString()}
+									</time>
+								</span>
+								{note.summary && <span class="recent__summary">{note.summary}</span>}
 							</a>
 						</li>
 					))}
@@ -140,9 +141,8 @@ const graphData = await getGraphData();
 
 	.recent__list a {
 		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
+		flex-direction: column;
+		gap: 0.2rem;
 		padding: 0.5rem 0;
 		color: var(--fg);
 		text-decoration: none;
@@ -151,6 +151,13 @@ const graphData = await getGraphData();
 
 	.recent__list li:last-child a {
 		border-bottom: none;
+	}
+
+	.recent__row {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
 	}
 
 	.recent__list a:hover .recent__title {
@@ -167,6 +174,12 @@ const graphData = await getGraphData();
 		font-size: 0.78rem;
 		color: var(--muted);
 		white-space: nowrap;
+	}
+
+	.recent__summary {
+		font-family: var(--font-body);
+		font-size: 0.82rem;
+		color: var(--muted);
 	}
 
 	:global(.graph-explorer) {
