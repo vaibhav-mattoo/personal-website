@@ -1,0 +1,289 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import TerminalPrompt from '../../../components/TerminalPrompt.astro';
+import { getPublicNoteEntries, getTopicTree } from '../../../lib/topicVault';
+import { orderNotes, tagAncestors } from '../../../lib/topics';
+import '../../../styles/prose.css';
+
+export async function getStaticPaths() {
+	const tree = await getTopicTree();
+	return [...tree.byId.keys()].map((id) => ({
+		params: { tag: id },
+	}));
+}
+
+const { tag } = Astro.params;
+const id = tag as string;
+
+const tree = await getTopicTree();
+const node = tree.byId.get(id)!;
+
+// Ancestors of this node (excluding itself), resolved for the breadcrumb.
+// buildTopicTree guarantees a node exists for every prefix, so these all hit.
+const breadcrumb = tagAncestors(id)
+	.slice(0, -1)
+	.map((ancestorId) => tree.byId.get(ancestorId)!);
+
+const childTopics = node.children.filter((child) => !child.hidden);
+// Sequence entries are authoritative: a note named in this topic's sequence
+// renders in that position even if it isn't tagged into the topic (allNotes
+// covers that case; `node.notes` alone would silently drop it).
+const allNotes = await getPublicNoteEntries();
+const { sequenced, rest } = orderNotes(node, allNotes, node.notes);
+
+// Only a real topic file has a body worth rendering — synthesized nodes
+// (a tag with no matching topic file) have nothing to render here, per spec:
+// they still get a full page, just without an intro.
+let Content: Awaited<ReturnType<typeof render>>['Content'] | undefined;
+if (!node.synthesized) {
+	const topicEntries = await getCollection('topics');
+	const topicEntry = topicEntries.find((t) => t.id === id);
+	if (topicEntry) {
+		({ Content } = await render(topicEntry));
+	}
+}
+---
+
+<Base title={node.title}>
+	<header class="head">
+		<nav class="crumbs" aria-label="Breadcrumb">
+			<a href="/notes/tags/">Tags</a>
+			{
+				breadcrumb.map((ancestor) => (
+					<>
+						<span class="crumbs__sep">/</span>
+						<a href={`/notes/tags/${ancestor.id}/`}>{ancestor.title}</a>
+					</>
+				))
+			}
+			{breadcrumb.length > 0 && <span class="crumbs__sep">/</span>}
+			<span class="crumbs__current">{node.title}</span>
+		</nav>
+		<h1>{node.title}</h1>
+		{node.summary && <p class="head__summary">{node.summary}</p>}
+	</header>
+
+	<TerminalPrompt command={`grep -rl "${id}" *.md`} />
+
+	{
+		Content && (
+			<div class="prose topic-body">
+				<Content />
+			</div>
+		)
+	}
+
+	{
+		childTopics.length > 0 && (
+			<section class="section">
+				<h2>Subtopics</h2>
+				<ul class="tiles">
+					{childTopics.map((child) => (
+						<li>
+							<a class="tile" href={`/notes/tags/${child.id}/`}>
+								<span class="tile__title">{child.title}</span>
+								<span class="tile__count">{child.notes.length}</span>
+							</a>
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
+	{
+		sequenced.length > 0 && (
+			<section class="section">
+				<h2>In order</h2>
+				<ol class="list list--numbered">
+					{sequenced.map((note, i) => (
+						<li>
+							<a href={`/notes/${note.id}/`}>
+								<span class="list__index">{i + 1}</span>
+								<span class="list__title">{note.title}</span>
+								<time datetime={note.date.toISOString()} class="list__date">
+									{note.date.toLocaleDateString()}
+								</time>
+							</a>
+						</li>
+					))}
+				</ol>
+			</section>
+		)
+	}
+
+	{
+		rest.length > 0 && (
+			<section class="section">
+				<h2>{sequenced.length > 0 ? 'More in this topic' : 'Notes'}</h2>
+				<ul class="list">
+					{rest.map((note) => (
+						<li>
+							<a href={`/notes/${note.id}/`}>
+								<span class="list__title">{note.title}</span>
+								<time datetime={note.date.toISOString()} class="list__date">
+									{note.date.toLocaleDateString()}
+								</time>
+								{note.summary && <span class="list__summary">{note.summary}</span>}
+							</a>
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
+	{
+		sequenced.length === 0 && rest.length === 0 && (
+			<p class="empty">No notes tagged with this topic yet.</p>
+		)
+	}
+
+	<p class="back"><a href="/notes/tags/">← all tags</a></p>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1.5rem;
+	}
+	.crumbs {
+		margin: 0 0 0.75rem;
+		font-family: var(--font-display);
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+	.crumbs a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+	.crumbs a:hover {
+		color: var(--accent);
+	}
+	.crumbs__sep {
+		margin: 0 0.35rem;
+	}
+	.crumbs__current {
+		color: var(--fg);
+	}
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+	.head__summary {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+	.topic-body {
+		margin: 1.5rem 0;
+	}
+	.section {
+		margin: 2rem 0;
+	}
+	.section h2 {
+		margin: 0 0 0.75rem;
+		font-family: var(--font-display);
+		font-size: 0.9rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--muted);
+	}
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.tile {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.6rem 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		color: var(--fg);
+		text-decoration: none;
+	}
+	.tile:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--accent-soft);
+	}
+	.tile__title {
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+	.tile__count {
+		font-family: var(--font-display);
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+	.list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.list a {
+		display: grid;
+		gap: 0.2rem;
+		padding: 1rem 0;
+		border-bottom: 1px solid var(--border);
+		color: var(--fg);
+		text-decoration: none;
+	}
+	.list--numbered a {
+		grid-template-columns: 1.5rem 1fr;
+		column-gap: 0.5rem;
+	}
+	.list--numbered .list__index {
+		grid-row: 1;
+	}
+	.list--numbered .list__title,
+	.list--numbered .list__date {
+		grid-column: 2;
+	}
+	.list a:hover .list__title {
+		color: var(--accent);
+	}
+	.list__index {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+	.list__title {
+		font-family: var(--font-body);
+		font-weight: 600;
+	}
+	.list__date {
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--muted);
+	}
+	.list__summary {
+		font-family: var(--font-body);
+		color: var(--muted);
+	}
+	.empty {
+		color: var(--muted);
+		font-style: italic;
+		margin: 1rem 0;
+	}
+	.back {
+		margin: 1.5rem 0 2rem;
+		font-family: var(--font-display);
+	}
+	.back a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+	.back a:hover {
+		color: var(--accent);
+	}
+</style>
