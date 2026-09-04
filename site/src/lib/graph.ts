@@ -26,8 +26,8 @@ export type GraphNode = {
 	/** 'orphan' | 'connected' for notes; 'synthesized' | 'real' for topics. */
 	status: string;
 	summary?: string;
-	/** Only for kind: 'paper' — the timeline toggle fixes x by this. */
-	year?: number;
+	/** Every note's `date` (ISO string) — the timeline toggle fixes x by this. Absent for topic nodes. */
+	date?: string;
 	/** Only for kind: 'topic' — its own area/course/paper-thread/scratch kind. */
 	topicKind?: TopicKind;
 };
@@ -50,7 +50,7 @@ export type GraphNoteEntry = {
 	tags: string[];
 	kind: string;
 	summary?: string;
-	year?: number;
+	date: Date;
 };
 
 /**
@@ -103,7 +103,7 @@ export function buildGraphData(entries: GraphNoteEntry[], index: LinkIndex, tree
 			degree: d,
 			status: d === 0 ? 'orphan' : 'connected',
 			summary: e.summary,
-			year: e.kind === 'paper' ? e.year : undefined,
+			date: e.date.toISOString(),
 		};
 	});
 
