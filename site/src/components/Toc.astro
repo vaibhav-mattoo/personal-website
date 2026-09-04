@@ -1,11 +1,15 @@
 ---
 import type { MarkdownHeading } from 'astro';
+import LocalGraph from './LocalGraph.astro';
+import type { GraphData } from '../lib/graph';
 
 interface Props {
 	headings: MarkdownHeading[];
+	/** Rendered inside the collapsed popover panel, below the contents list. */
+	localGraph?: { data: GraphData; focusId: string };
 }
 
-const { headings } = Astro.props;
+const { headings, localGraph } = Astro.props;
 const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const show = filtered.length >= 2;
 ---
@@ -65,6 +69,11 @@ const show = filtered.length >= 2;
 							</a>
 						))}
 					</nav>
+					{localGraph && (
+						<div class="toc-popover__graph">
+							<LocalGraph data={localGraph.data} focusId={localGraph.focusId} />
+						</div>
+					)}
 				</div>
 			</div>
 
@@ -399,4 +408,9 @@ const show = filtered.length >= 2;
 		backdrop-filter: blur(8px);
 	}
 
+	.toc-popover__graph {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		border-top: 1px solid var(--border);
+	}
 </style>

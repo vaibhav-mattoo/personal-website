@@ -1,0 +1,44 @@
+---
+import Graph from './Graph';
+import type { GraphData } from '../lib/graph';
+
+interface Props {
+	data: GraphData;
+	focusId: string;
+}
+
+const { data, focusId } = Astro.props;
+---
+
+<div class="local-graph">
+	<h2 class="local-graph__title">Related</h2>
+	<Graph client:visible data={data} focusId={focusId} depth={1} />
+</div>
+
+<style>
+	.local-graph {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.local-graph__title {
+		margin: 0;
+		font-family: var(--font-body);
+		font-size: 0.875rem;
+		font-weight: 400;
+		color: var(--muted);
+	}
+
+	.local-graph :global(.graph-canvas) {
+		width: 100%;
+		height: 14rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--card);
+	}
+
+	.local-graph :global(.graph-canvas canvas) {
+		border-radius: var(--radius);
+	}
+</style>

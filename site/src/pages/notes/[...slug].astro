@@ -8,10 +8,12 @@ import ReadingProgress from '../../components/ReadingProgress.astro';
 import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
 import SequenceNav from '../../components/SequenceNav.astro';
+import LocalGraph from '../../components/LocalGraph.astro';
 import { getBacklinks } from '../../lib/backlinks';
 import { getPublicVault } from '../../lib/vault';
-import { getTopicTree } from '../../lib/topicVault';
+import { getTopicTree, getGraphData } from '../../lib/topicVault';
 import { sequenceNeighbors } from '../../lib/topics';
+import { neighborhood } from '../../lib/links';
 import '../../styles/docs.css';
 import '../../styles/prose.css';
 
@@ -57,13 +59,31 @@ const sequences = [...tree.byId.values()]
 			next: neighbors.next && nextTitle ? { id: neighbors.next, title: nextTitle } : undefined,
 		};
 	});
+
+// Local graph: depth-1 neighborhood computed at build time (not the whole
+// vault) so each note page's payload stays O(neighborhood size), not
+// O(vault size) — same reduction Graph.tsx does client-side for graph.astro,
+// applied here server-side since we already know the one node we care about.
+const fullGraph = await getGraphData();
+const localGraphData = neighborhood(
+	{
+		nodes: fullGraph.nodes,
+		edges: fullGraph.edges.map((e) => ({ ...e, broken: false })),
+	},
+	note.id,
+	1,
+);
 ---
 
 <Base title={note.data.title} docs>
 	<ReadingProgress />
 
 	<div class="docs">
-		<Toc headings={headings} />
+		<Toc headings={headings} localGraph={{ data: localGraphData, focusId: note.id }} />
+
+		<div class="docs__graph">
+			<LocalGraph data={localGraphData} focusId={note.id} />
+		</div>
 
 		<article class="docs__main" data-pagefind-body>
 			<header class="note-head">
