@@ -48,3 +48,25 @@ html[data-mode='dark'] #mode-toggle .mode__icon--sun {
 html[data-mode='dark'] #mode-toggle .mode__icon--moon {
 	display: none;
 }
+
+/* Graph.tsx: appears once the user pans/zooms the graph canvas away from
+   its auto-fit view, hidden again once they reset it. */
+.graph-reset-btn {
+	position: absolute;
+	top: 0.6rem;
+	right: 0.6rem;
+	padding: 0.35rem 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: var(--card);
+	color: var(--fg);
+	font-family: var(--font-display);
+	font-size: 0.78rem;
+	cursor: pointer;
+}
+
+.graph-reset-btn:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+	background: var(--accent-soft);
+}

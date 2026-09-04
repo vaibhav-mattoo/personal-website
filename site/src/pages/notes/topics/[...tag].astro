@@ -48,12 +48,12 @@ if (!node.synthesized) {
 <Base title={node.title}>
 	<header class="head">
 		<nav class="crumbs" aria-label="Breadcrumb">
-			<a href="/notes/tags/">Tags</a>
+			<a href="/notes/">Topics</a>
 			{
 				breadcrumb.map((ancestor) => (
 					<>
 						<span class="crumbs__sep">/</span>
-						<a href={`/notes/tags/${ancestor.id}/`}>{ancestor.title}</a>
+						<a href={`/notes/topics/${ancestor.id}/`}>{ancestor.title}</a>
 					</>
 				))
 			}
@@ -81,7 +81,7 @@ if (!node.synthesized) {
 				<ul class="tiles">
 					{childTopics.map((child) => (
 						<li>
-							<a class="tile" href={`/notes/tags/${child.id}/`}>
+							<a class="tile" href={`/notes/topics/${child.id}/`}>
 								<span class="tile__title">{child.title}</span>
 								<span class="tile__count">{child.notes.length}</span>
 							</a>
@@ -140,7 +140,7 @@ if (!node.synthesized) {
 		)
 	}
 
-	<p class="back"><a href="/notes/tags/">← all tags</a></p>
+	<p class="back"><a href="/notes/">← all topics</a></p>
 </Base>
 
 <style>
