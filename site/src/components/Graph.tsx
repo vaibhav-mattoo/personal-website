@@ -89,7 +89,7 @@ function nodeRadius(node: GraphNode): number {
  */
 function topicFontSize(node: GraphNode): number {
 	const depth = node.topics.length || 1;
-	return Math.max(9, 17 - (depth - 1) * 3);
+	return Math.max(18, 34 - (depth - 1) * 6);
 }
 
 /** Deterministic color per top-level topic — a fixed categorical palette
