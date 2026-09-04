@@ -31,6 +31,12 @@ export interface GraphProps {
 	 */
 	highlightQuery?: string;
 	/**
+	 * Note ids to highlight in addition to `highlightQuery`'s title match —
+	 * how full-text (Pagefind) search results reach the graph, since a body
+	 * match often has nothing to do with the title.
+	 */
+	highlightIds?: readonly string[];
+	/**
 	 * Fixes every paper node's x by `year` (a year axis along the bottom),
 	 * leaving the force simulation to lay out y only. Non-paper nodes and
 	 * papers with no year float freely, unpinned.
@@ -244,7 +250,14 @@ function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
 	fg.zoom(k, ms);
 }
 
-export default function Graph({ data, focusId, depth = 1, highlightQuery, timeline = false }: GraphProps) {
+export default function Graph({
+	data,
+	focusId,
+	depth = 1,
+	highlightQuery,
+	highlightIds,
+	timeline = false,
+}: GraphProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const fgRef = useRef<FG | null>(null);
 	const colorsRef = useRef<ThemeColors>({
@@ -256,6 +269,7 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 		fontFamily: 'ui-monospace, monospace',
 	});
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
+	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
 	const timelineRef = useRef(timeline);
 	const yearRangeRef = useRef<[number, number] | null>(null);
 	const zoomedOnceRef = useRef(false);
@@ -283,6 +297,10 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 	}, [highlightQuery]);
 
 	useEffect(() => {
+		highlightIdsRef.current = new Set(highlightIds);
+	}, [highlightIds]);
+
+	useEffect(() => {
 		timelineRef.current = timeline;
 		yearRangeRef.current = pinNodesByYear(graphDataRef.current.nodes, timeline);
 		fgRef.current?.d3ReheatSimulation();
@@ -306,7 +324,8 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 			const nodeColor = (node: SimNode) => colorForTopic(node.topics[0], colorsRef.current.muted);
 			const isFaded = (node: SimNode) => node.status === 'orphan' || node.status === 'synthesized';
 			const isHighlighted = (node: SimNode) =>
-				!!highlightRef.current && node.title.toLowerCase().includes(highlightRef.current);
+				(!!highlightRef.current && node.title.toLowerCase().includes(highlightRef.current)) ||
+				highlightIdsRef.current.has(node.id);
 
 			fg = new ForceGraph<SimNode, GraphEdge>(el)
 				.backgroundColor('rgba(0,0,0,0)')
@@ -516,14 +535,14 @@ export default function Graph({ data, focusId, depth = 1, highlightQuery, timeli
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// highlightQuery changes don't need a graphData reassignment — the canvas
-	// render callback reads highlightRef live — but force a repaint since the
-	// simulation may already be cooled down.
+	// highlightQuery/highlightIds changes don't need a graphData reassignment —
+	// the canvas render callback reads the refs live — but force a repaint
+	// since the simulation may already be cooled down.
 	useEffect(() => {
 		const fg = fgRef.current;
 		if (!fg) return;
 		fg.nodeColor(fg.nodeColor());
-	}, [highlightQuery]);
+	}, [highlightQuery, highlightIds]);
 
 	function handleReset() {
 		const fg = fgRef.current;

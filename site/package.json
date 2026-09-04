@@ -21,7 +21,6 @@
   "dependencies": {
     "@astrojs/mdx": "^5.0.6",
     "@astrojs/react": "^5.0.5",
-    "@pagefind/default-ui": "^1.5.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
