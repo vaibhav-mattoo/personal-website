@@ -249,6 +249,68 @@ const graphData = await getGraphData();
 		color: var(--muted);
 	}
 
+	/* Pagefind full-text hits — rendered between the search controls and the
+	   graph, so a body-text match is visible as a result AND as a highlighted
+	   node at the same time. */
+	:global(.graph-explorer__results) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	:global(.graph-explorer__result) {
+		display: block;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--card);
+		color: var(--fg);
+		text-decoration: none;
+	}
+
+	:global(.graph-explorer__result:hover) {
+		border-color: var(--accent);
+	}
+
+	:global(.graph-explorer__result-title) {
+		display: block;
+		font-family: var(--font-body);
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+
+	:global(.graph-explorer__result:hover .graph-explorer__result-title) {
+		color: var(--accent);
+	}
+
+	:global(.graph-explorer__result-excerpt) {
+		display: block;
+		margin-top: 0.15rem;
+		font-family: var(--font-body);
+		font-size: 0.82rem;
+		color: var(--muted);
+	}
+
+	:global(.graph-explorer__result-excerpt mark) {
+		background: var(--accent-soft);
+		color: var(--accent);
+		border-radius: 0.2em;
+	}
+
+	:global(.graph-explorer__results-hint) {
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: 0.78rem;
+		color: var(--muted);
+	}
+
+	:global(.graph-explorer__results-hint code) {
+		font-family: var(--font-display);
+	}
+
 	:global(.graph-canvas) {
 		width: 100%;
 		height: 50vh;
