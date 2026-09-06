@@ -5,3 +5,9 @@ site/.astro/
 .env
 .env.*
 !.env.example
+
+# Notes/topics content lives in a separate private repo, synced in by
+# deploy/sync-notes.sh (see docs/notes-repo.md) — never tracked here.
+/.notes-cache/
+site/src/content/notes/
+site/src/content/topics/

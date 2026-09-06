@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Fired by vaibhav-mattoo/notes' notify-deploy workflow on every push to
+  # its master — a content-only change with no code change here still
+  # needs a rebuild, since notes/topics content is baked into the Docker
+  # image at build time (deploy/update.sh runs deploy/sync-notes.sh before
+  # `docker compose ... --build`).
+  repository_dispatch:
+    types: [notes-updated]
 
 concurrency:
   group: deploy-production
@@ -12,6 +19,7 @@ concurrency:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+    secrets: inherit
 
   deploy:
     needs: ci

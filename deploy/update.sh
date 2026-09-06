@@ -44,6 +44,9 @@ git fetch origin "${REPO_REF}"
 git checkout "${REPO_REF}"
 git reset --hard "origin/${REPO_REF}"
 
+log "Syncing notes/topics content"
+./deploy/sync-notes.sh
+
 export SITE_DOMAIN
 ensure_shared_network
 log "Rebuilding and restarting (domain: ${SITE_DOMAIN})"
