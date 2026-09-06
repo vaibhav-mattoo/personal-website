@@ -5,8 +5,12 @@
     "site"
   ],
   "scripts": {
+    "sync-notes": "deploy/sync-notes.sh",
+    "predev": "npm run sync-notes",
     "dev": "npm run dev -w site",
+    "precheck": "npm run sync-notes",
     "check": "npm run check -w site",
+    "prebuild": "npm run sync-notes",
     "build": "npm run build -w site",
     "preview": "npm run preview -w site",
     "links": "npm run links -w site",

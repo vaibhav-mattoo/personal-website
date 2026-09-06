@@ -19,6 +19,14 @@ jobs:
           node-version: "22"
           cache: npm
 
+      # Read-only deploy key for vaibhav-mattoo/notes (private) — see
+      # docs/notes-repo.md. deploy/sync-notes.sh (predev/precheck/prebuild
+      # hooks in package.json) clones it over SSH.
+      - name: Load notes repo deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.NOTES_DEPLOY_KEY }}
+
       - name: Install dependencies
         run: npm ci
 
