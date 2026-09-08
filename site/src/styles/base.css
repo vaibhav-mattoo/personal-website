@@ -20,3 +20,18 @@ body {
 	color: var(--fg);
 	transition: background-color 0.15s, color 0.15s;
 }
+
+/* One global guard for every transition/animation in the site (including
+   ones added later) instead of hand-wrapping each declaration — see
+   site/src/components/Graph.tsx for the equivalent JS-side check on the
+   force simulation and camera-fit animation. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
