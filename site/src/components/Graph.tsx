@@ -220,6 +220,10 @@ function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
  * given. This measures each node's actual drawn extent (text bounds for
  * topics, radius for everything else) and fits the camera to that instead.
  */
+function prefersReducedMotion(): boolean {
+	return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
 	if (nodes.length === 0) return;
 	let minX = Infinity;
@@ -254,8 +258,9 @@ function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
 	const padding = 24;
 	const k = Math.min((width - padding * 2) / bboxW, (height - padding * 2) / bboxH, 6);
 
-	fg.centerAt((minX + maxX) / 2, (minY + maxY) / 2, ms);
-	fg.zoom(k, ms);
+	const animMs = prefersReducedMotion() ? 0 : ms;
+	fg.centerAt((minX + maxX) / 2, (minY + maxY) / 2, animMs);
+	fg.zoom(k, animMs);
 }
 
 export default function Graph({
@@ -426,8 +431,10 @@ export default function Graph({
 				// its own default of 0, that's also the only thing that ends the
 				// simulation, so onEngineStop (and the initial fit-to-content it
 				// triggers) wouldn't fire until then. These graphs are small
-				// enough to visually settle in well under a second.
-				.cooldownTime(1500);
+				// enough to visually settle in well under a second. Reduced
+				// motion skips the visible settling animation entirely — see
+				// Phase 5 for the deterministic, non-live layout this replaces.
+				.cooldownTime(prefersReducedMotion() ? 0 : 1500);
 
 			// More breathing room than the library defaults: stronger repulsion
 			// and longer link distance so clusters separate instead of clumping.

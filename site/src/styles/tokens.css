@@ -14,9 +14,75 @@
 	   (not just top-anchored) inside the .toolbar-backdrop band. */
 	--docs-sticky-top: calc(var(--toolbar-h) + var(--toolbar-top));
 	--toc-popover-h: 2.5rem;
+
+	/* Spacing — 4px base grid. Use these instead of ad-hoc rem/px margins
+	   and paddings in new/touched code; existing untouched values aren't
+	   being migrated wholesale as part of this pass. */
+	--s-1: 4px;
+	--s-2: 8px;
+	--s-3: 12px;
+	--s-4: 16px;
+	--s-5: 20px;
+	--s-6: 24px;
+	--s-7: 32px;
+	--s-8: 40px;
+	--s-9: 48px;
+	--s-10: 64px;
+	--s-11: 80px;
+	--s-12: 96px;
+
+	/* Type scale — 1.25 ratio off a 16px base, one job per size:
+	   xs   12px  absolute floor — fine print only, never go smaller
+	   sm   14px  mono UI labels, metadata, counts, timestamps
+	   base 16px  body prose (line-height set separately, see --leading-body)
+	   lg   20px  card/section titles, subheadings
+	   xl   25px  h2-level section headings
+	   2xl  31px  h1 on non-home pages
+	   3xl  39px  reserved for large one-off emphasis
+	   4xl  49px  reserved (hero-scale) — the home h1 uses --text-h1 instead,
+	              a single clamp() token kept independent of this ratio scale
+	              so it can be turned back up without disturbing anything
+	              else derived from the base. */
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.25rem;
+	--text-xl: 1.5625rem;
+	--text-2xl: 1.953rem;
+	--text-3xl: 2.441rem;
+	--text-4xl: 3.052rem;
+	--text-h1: clamp(2.5rem, 5vw, 3.25rem);
+	--leading-body: 1.6;
+
+	/* Widths */
+	--measure: 68ch;
+	--w-content: 1080px;
+	--w-wide: 1320px;
+
+	/* Focus ring — one shared recipe for every :focus-visible rule. */
+	--focus-ring: 2px solid var(--accent);
+	--focus-ring-offset: 2px;
+
+	/* Motion */
+	--dur-fast: 120ms;
+	--dur: 160ms;
+	--ease: cubic-bezier(0.2, 0, 0, 1);
+
+	/* Surfaces/borders — a lift subtler than --card (which several
+	   components already use for a more pronounced card look), plus two
+	   border weights so every stroke stops being visually identical.
+	   Derived via color-mix off the existing --bg/--fg/--border so they
+	   stay correct across every [data-mode] automatically — no new
+	   per-mode hex values to keep in sync. */
+	--surface: color-mix(in srgb, var(--fg) 4%, var(--bg));
+	--border-subtle: color-mix(in srgb, var(--border) 60%, var(--bg));
+	--border-strong: color-mix(in srgb, var(--border) 45%, var(--fg));
 }
 
-/* Surfaces — taniarascia.com beige / gray scale */
+/* Surfaces — taniarascia.com beige / gray scale.
+   --muted contrast audited against both --bg and --card in both modes:
+   light 7.84:1 / 6.87:1, dark 6.62:1 / 5.55:1 — all already clear of the
+   4.5:1 floor, so left as-is rather than changed without a real problem. */
 [data-mode='light'] {
 	--bg: #fdf9ee;
 	--fg: #25252b;
@@ -37,27 +103,31 @@
 	--rail: color-mix(in srgb, var(--fg) 14%, transparent);
 }
 
-/* Accents — light-dark pairs from taniarascia.com */
+/* Accents — light-dark pairs from taniarascia.com.
+   Light-mode lavender/pink/yellow/green darkened slightly (same hue, lower
+   lightness) to clear 4.5:1 against --bg when used as text color — they
+   were 3.53–4.32:1 before. Dark-mode values and blue (already 4.82:1)
+   are unchanged. */
 [data-scheme='lavender'][data-mode='light'] {
-	--accent: #a455be;
+	--accent: #a04ebb;
 }
 [data-scheme='lavender'][data-mode='dark'] {
 	--accent: #d48ceb;
 }
 [data-scheme='pink'][data-mode='light'] {
-	--accent: #d33682;
+	--accent: #d12e7d;
 }
 [data-scheme='pink'][data-mode='dark'] {
 	--accent: #ff8ac0;
 }
 [data-scheme='yellow'][data-mode='light'] {
-	--accent: #ac7c14;
+	--accent: #956c11;
 }
 [data-scheme='yellow'][data-mode='dark'] {
 	--accent: #fcdc97;
 }
 [data-scheme='green'][data-mode='light'] {
-	--accent: #2d922d;
+	--accent: #288228;
 }
 [data-scheme='green'][data-mode='dark'] {
 	--accent: #92d192;
