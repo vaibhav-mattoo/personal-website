@@ -89,7 +89,10 @@ function nodeRadius(node: GraphNode): number {
  */
 function topicFontSize(node: GraphNode): number {
 	const depth = node.topics.length || 1;
-	return Math.max(18, 34 - (depth - 1) * 6);
+	// Geometric falloff (not linear) so the gap between depth 1 and depth 2
+	// reads as a real size class, not a minor variation — top-level topics
+	// should look categorically bigger than everything nested under them.
+	return Math.max(14, Math.round(42 * 0.58 ** (depth - 1)));
 }
 
 /** Deterministic color per top-level topic — a fixed categorical palette
