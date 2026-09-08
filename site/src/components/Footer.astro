@@ -1,0 +1,49 @@
+---
+import { githubUsername } from '../config/projects';
+
+// Frontmatter runs at build time for a static build, so this reflects the
+// actual build/deploy time, not a viewer's local clock.
+const buildDate = new Date().toISOString().slice(0, 10);
+---
+
+<footer class="footer">
+	<nav class="footer__links" aria-label="Site links">
+		<!-- RSS lands in Phase 8 alongside the actual /rss.xml route — no
+		     point linking a feed that doesn't exist yet. -->
+		<a href={`https://github.com/${githubUsername}`} target="_blank" rel="noopener">GitHub</a>
+		<a href="mailto:vaibhavmattoo1@gmail.com">Email</a>
+		<a href="/colophon/">Colophon</a>
+	</nav>
+	<p class="footer__meta">Built {buildDate}.</p>
+</footer>
+
+<style>
+	.footer {
+		margin-top: var(--s-12);
+		padding: var(--s-6) 0 var(--s-9);
+		border-top: 1px solid var(--border-subtle);
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.footer__links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-4);
+		margin: 0 0 var(--s-2);
+	}
+
+	.footer__links a {
+		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.footer__links a:hover {
+		color: var(--accent);
+	}
+
+	.footer__meta {
+		margin: 0;
+	}
+</style>

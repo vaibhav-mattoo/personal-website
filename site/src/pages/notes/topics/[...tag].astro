@@ -83,7 +83,7 @@ if (!node.synthesized) {
 						<li>
 							<a class="tile" href={`/notes/topics/${child.id}/`}>
 								<span class="tile__title">{child.title}</span>
-								<span class="tile__count">{child.notes.length}</span>
+								<span class="tile__count tabular-nums">{child.notes.length}</span>
 							</a>
 						</li>
 					))}
@@ -186,10 +186,8 @@ if (!node.synthesized) {
 	.section h2 {
 		margin: 0 0 0.75rem;
 		font-family: var(--font-display);
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
 		color: var(--muted);
 	}
 	.tiles {

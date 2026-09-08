@@ -1,0 +1,98 @@
+---
+import Base from '../layouts/Base.astro';
+import TerminalPrompt from '../components/TerminalPrompt.astro';
+---
+
+<Base title="Colophon">
+	<header class="head">
+		<h1>Colophon</h1>
+		<p>What this site is built with and how it runs.</p>
+	</header>
+
+	<TerminalPrompt command="cat colophon.md" />
+
+	<article class="prose">
+		<h2>Stack</h2>
+		<ul>
+			<li><a href="https://astro.build" target="_blank" rel="noopener">Astro</a> — static site generation and content collections</li>
+			<li><a href="https://react.dev" target="_blank" rel="noopener">React</a> — the sidebar drawer and topic graph, the only interactive pieces</li>
+			<li><a href="https://pagefind.app" target="_blank" rel="noopener">Pagefind</a> — full-text search, built at deploy time</li>
+			<li><a href="https://waline.js.org" target="_blank" rel="noopener">Waline</a> — comments, self-hosted alongside the site</li>
+			<li>Expressive Code, Mermaid, and KaTeX for code blocks, diagrams, and math</li>
+		</ul>
+
+		<h2>Type</h2>
+		<p>
+			System fonts only — <code>system-ui</code> for prose and UI, <code>ui-monospace</code> for
+			metadata and the terminal chrome. No webfonts to download.
+		</p>
+
+		<h2>Content</h2>
+		<p>
+			Notes and topics live in a separate, private repository, synced in at build time — kept
+			apart from this site's own (public) source so draft and privately-shared notes never end
+			up in this repo's git history.
+		</p>
+
+		<h2>Hosting</h2>
+		<p>
+			Self-hosted: Docker Compose behind Caddy on an Azure VM. GitHub Actions builds and deploys
+			on every push.
+		</p>
+	</article>
+</Base>
+
+<style>
+	.head {
+		margin: 2rem 0 1rem;
+	}
+
+	.head h1 {
+		margin: 0 0 0.5rem;
+		color: var(--accent);
+		font-family: var(--font-body);
+		font-size: clamp(2rem, 5vw, 2.75rem);
+	}
+
+	.head p {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--font-body);
+	}
+
+	.prose {
+		max-width: var(--measure);
+		font-family: var(--font-body);
+		color: var(--fg);
+		line-height: var(--leading-body);
+	}
+
+	.prose h2 {
+		margin: 2rem 0 0.5rem;
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
+		color: var(--fg);
+	}
+
+	.prose h2:first-child {
+		margin-top: 0;
+	}
+
+	.prose ul {
+		margin: 0;
+		padding-left: 1.25rem;
+	}
+
+	.prose li {
+		margin: 0.35rem 0;
+	}
+
+	.prose a {
+		color: var(--accent);
+	}
+
+	.prose code {
+		font-family: var(--font-display);
+		font-size: 0.9em;
+	}
+</style>

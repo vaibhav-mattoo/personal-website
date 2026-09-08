@@ -10,7 +10,7 @@ interface Props {
 const { command, user = site.terminalUser, host = site.terminalHost } = Astro.props;
 ---
 
-<div class="prompt">
+<div class="prompt" aria-hidden="true">
 	<span class="prompt__shell">[{user}@{host} ~]$</span>
 	<span class="prompt__cmd">{command}</span>
 </div>

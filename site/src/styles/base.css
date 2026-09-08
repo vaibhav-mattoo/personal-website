@@ -21,6 +21,43 @@ body {
 	transition: background-color 0.15s, color 0.15s;
 }
 
+/* Every <time> element (dates) plus anything explicitly marked as a count
+   gets fixed-width digits, so columns of dates/counts stop jittering. */
+time,
+.tabular-nums {
+	font-variant-numeric: tabular-nums;
+}
+
+/* One shared, visible focus indicator everywhere — most interactive
+   elements had none before this. A more specific :focus-visible rule
+   elsewhere (e.g. .sheet-nav a) still wins by specificity as normal. */
+:focus-visible {
+	outline: var(--focus-ring);
+	outline-offset: var(--focus-ring-offset);
+}
+
+/* First focusable element in the document — invisible until it receives
+   keyboard focus, then docks in the top-left corner above everything. */
+.skip-link {
+	position: absolute;
+	top: -100%;
+	left: var(--s-2);
+	z-index: 100;
+	padding: var(--s-2) var(--s-4);
+	background: var(--bg);
+	color: var(--fg);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--radius);
+	font-family: var(--font-display);
+	font-size: var(--text-sm);
+	text-decoration: none;
+	transition: top var(--dur-fast) var(--ease);
+}
+
+.skip-link:focus-visible {
+	top: var(--s-2);
+}
+
 /* One global guard for every transition/animation in the site (including
    ones added later) instead of hand-wrapping each declaration — see
    site/src/components/Graph.tsx for the equivalent JS-side check on the

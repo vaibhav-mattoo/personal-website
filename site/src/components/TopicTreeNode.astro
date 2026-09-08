@@ -18,7 +18,7 @@ const d = Math.min(depth, 3);
 <li class={`topic-node topic-node--d${d}`} data-hover-reveal={hoverReveal}>
 	<a class="topic-node__link" href={`/notes/topics/${node.id}/`}>
 		<span class="topic-node__title">{node.title}</span>
-		<span class="topic-node__count">{node.notes.length}</span>
+		<span class="topic-node__count tabular-nums">{node.notes.length}</span>
 	</a>
 	{
 		visibleChildren.length > 0 && (

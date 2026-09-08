@@ -36,7 +36,7 @@ import { sidebarSections } from '../config/sidebar';
 		margin: 0 0 0.5rem;
 		color: var(--accent);
 		font-family: var(--font-body);
-		font-size: clamp(2.75rem, 8vw, 4.5rem);
+		font-size: var(--text-h1);
 		font-weight: 600;
 	}
 
@@ -44,22 +44,22 @@ import { sidebarSections } from '../config/sidebar';
 		margin: 0;
 		color: var(--muted);
 		font-family: var(--font-body);
-		font-size: 1.05rem;
-		line-height: 1.6;
+		font-size: var(--text-base);
+		line-height: var(--leading-body);
 	}
 
 	.tiles {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-		gap: 0.5rem;
-		margin: 0.25rem 0 1rem;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-3);
+		margin: var(--s-1) 0 var(--s-4);
 	}
 
 	.about {
 		font-family: var(--font-body);
 		color: var(--fg);
 		line-height: 1.7;
-		max-width: 42rem;
+		max-width: var(--measure);
 	}
 
 	.about p {

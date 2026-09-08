@@ -1,22 +1,41 @@
 :root {
 	--toolbar-top: 1rem;
-	--toolbar-btn: 38px;
+	/* 44px hit-target minimum. --docs-sticky-top/.toolbar-backdrop below are
+	   derived from this, not hardcoded, so raising it stays self-consistent
+	   with the toolbar-band vertical-centering math. */
+	--toolbar-btn: 44px;
 	--sheet-inset-x: 0.75rem;
 }
 
+/* Standard page container — every non-docs page shell. Left-aligned to a
+   single spine (margin-inline: auto centers the column, not its text —
+   nothing inside should get text-align: center as a result of this). */
+.container {
+	max-width: var(--w-content);
+	margin-inline: auto;
+	padding-inline: var(--s-6);
+}
+
+/* Sticky footer: .shell is the flex column, .shell__main grows to fill
+   any leftover space so the footer sits at the bottom of the viewport on
+   short pages instead of floating right under the content. */
 .shell {
 	position: relative;
+	display: flex;
+	flex-direction: column;
 	min-height: 100dvh;
 }
 
+/* No horizontal padding here — non-docs pages get theirs from .container
+   (wrapped around the slot in Base.astro), docs pages from --docs-gutter
+   in the .docs grid itself. */
 .shell__main {
-	padding: 4.5rem 1.5rem 2rem;
-	min-height: 100dvh;
+	flex: 1 0 auto;
+	padding-block: 4.5rem 2rem;
 }
 
-/* Docs pages manage their own gutters; the shell only clears the toolbar. */
 .shell__main--docs {
-	padding: var(--docs-sticky-top) 0 2rem;
+	padding-block: var(--docs-sticky-top) 2rem;
 }
 
 /* Always-on frosted band behind the toolbar, so page content never scrolls

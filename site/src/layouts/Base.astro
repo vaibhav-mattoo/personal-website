@@ -11,6 +11,7 @@ import ThemePicker from '../components/ThemePicker.astro';
 import ModeToggle from '../components/ModeToggle.astro';
 import Handle from '../components/Handle.astro';
 import SidebarDrawer from '../components/SidebarDrawer';
+import Footer from '../components/Footer.astro';
 import { site } from '../config/site';
 
 interface Props {
@@ -34,6 +35,7 @@ const documentTitle =
 		<slot name="head" />
 	</head>
 	<body>
+		<a href="#main-content" class="skip-link">Skip to content</a>
 		<div class="shell">
 			<div class="toolbar-backdrop" aria-hidden="true"></div>
 			<header class="toolbar">
@@ -63,9 +65,21 @@ const documentTitle =
 				</div>
 			</header>
 
-			<main class={docs ? 'shell__main shell__main--docs' : 'shell__main'}>
-				<slot />
+			<main id="main-content" class={docs ? 'shell__main shell__main--docs' : 'shell__main'}>
+				{
+					docs ? (
+						<slot />
+					) : (
+						<div class="container">
+							<slot />
+						</div>
+					)
+				}
 			</main>
+
+			<div class="container">
+				<Footer />
+			</div>
 		</div>
 
 		<script>

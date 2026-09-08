@@ -535,7 +535,12 @@ export default function Graph({
 
 	return (
 		<div style={{ position: 'relative' }}>
-			<div ref={containerRef} className="graph-canvas" />
+			<div
+				ref={containerRef}
+				className="graph-canvas"
+				role="img"
+				aria-label="Visual graph of notes and topics and how they link — the same notes and topics are also reachable as regular text links elsewhere on this page."
+			/>
 			{interacted && (
 				<button type="button" className="graph-reset-btn" onClick={handleReset}>
 					Reset view

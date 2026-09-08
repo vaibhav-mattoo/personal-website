@@ -44,7 +44,6 @@ const graphData = await getGraphData();
 	}
 
 	<section class="section">
-		<h2>Explore visually</h2>
 		<GraphExplorer client:visible data={graphData} />
 	</section>
 
@@ -102,10 +101,8 @@ const graphData = await getGraphData();
 	.section h2 {
 		margin: 0 0 0.35rem;
 		font-family: var(--font-display);
-		font-size: 0.9rem;
+		font-size: var(--text-sm);
 		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
 		color: var(--muted);
 	}
 
