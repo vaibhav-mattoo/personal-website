@@ -30,6 +30,10 @@ export type GraphNode = {
 	date?: string;
 	/** Only for kind: 'topic' — its own area/course/paper-thread/scratch kind. */
 	topicKind?: TopicKind;
+	/** Only for kind: 'topic' — its parent topic id, if any (root topics have none). */
+	parent?: string;
+	/** Only for kind: 'topic' — notes tagged with this id or any deeper path under it. */
+	noteCount?: number;
 };
 
 export type GraphEdge = {
@@ -118,6 +122,8 @@ export function buildGraphData(entries: GraphNoteEntry[], index: LinkIndex, tree
 			status: node.synthesized ? 'synthesized' : 'real',
 			summary: node.summary,
 			topicKind: node.kind,
+			parent: node.parent,
+			noteCount: node.notes.length,
 		};
 	});
 

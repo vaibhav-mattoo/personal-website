@@ -71,3 +71,20 @@ html[data-mode='dark'] #mode-toggle .mode__icon--moon {
 	color: var(--accent);
 	background: var(--accent-soft);
 }
+
+/* Graph.tsx: the canvas has no native DOM focus, so this is the actual
+   keyboard/screen-reader path through the graph — every link a real,
+   tab-reachable <a>, just not visible to sighted mouse users. Standard
+   sr-only clip technique, not display:none (which would drop it from the
+   accessibility tree and tab order entirely). */
+.graph-a11y-list {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}

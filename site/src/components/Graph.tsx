@@ -9,6 +9,8 @@ import type ForceGraphCtor from 'force-graph';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { neighborhood } from '../lib/links';
 import type { GraphData, GraphEdge, GraphNode } from '../lib/graph';
+import { layoutGraph, type LayoutBox } from '../lib/graphLayout';
+import { evenlySpacedHues, hexToOklchHue, subtopicOklch, topicOklch } from '../lib/color';
 
 export type { GraphData, GraphEdge, GraphNode };
 
@@ -37,11 +39,15 @@ export interface GraphProps {
 	 */
 	highlightIds?: readonly string[];
 	/**
-	 * Fixes every note node's x by its `date`, leaving the force simulation
-	 * to lay out y only. Topic nodes (no `date`) float freely, unpinned.
+	 * Fixes every note node's x by its `date`, leaving a live simulation to
+	 * lay out y only. Topic nodes (no `date`) float freely, unpinned. The
+	 * only mode that still runs a live d3-force simulation — see the
+	 * default layout below, which is fully precomputed and pinned instead.
 	 */
 	timeline?: boolean;
 }
+
+const MOBILE_BREAKPOINT = 720;
 
 function shapeForKind(kind: string): 'circle' | 'diamond' | 'triangle' | 'pentagon' | 'star' {
 	switch (kind) {
@@ -75,7 +81,6 @@ function edgeDash(type: string): number[] | null {
 	}
 }
 
-
 function nodeRadius(node: GraphNode): number {
 	return Math.min(4 + Math.sqrt(node.degree) * 2.2, 16);
 }
@@ -83,27 +88,38 @@ function nodeRadius(node: GraphNode): number {
 /**
  * Topic nodes render as text, not a shape — sized by how deep they are in
  * the tag path (`topics` is that node's own ancestor-or-self chain, so its
- * length *is* the depth: 1 = top-level). Top-level topics read as
- * headings; deeper subtopics recede, the same visual hierarchy a nested
- * list would give you, but laid out by the graph instead.
+ * length *is* the depth: 1 = top-level) and, secondarily, by how many
+ * notes it has — log-scaled and capped so a heavily-populated topic
+ * doesn't dwarf everything and an empty one stays legible.
  */
 function topicFontSize(node: GraphNode): number {
 	const depth = node.topics.length || 1;
-	// Geometric falloff (not linear) so the gap between depth 1 and depth 2
-	// reads as a real size class, not a minor variation — top-level topics
-	// should look categorically bigger than everything nested under them.
-	return Math.max(14, Math.round(64 * 0.5 ** (depth - 1)));
+	const base = Math.max(14, Math.round(64 * 0.5 ** (depth - 1)));
+	const noteCount = node.noteCount ?? 0;
+	const countFactor = Math.min(1.35, 1 + Math.log2(noteCount + 1) * 0.08);
+	return Math.round(base * countFactor);
 }
 
-/** Deterministic color per top-level topic — a fixed categorical palette
- * independent of the site's single accent token, since N clusters need N
- * distinguishable colors. Fixed saturation/lightness keeps it legible on
- * both light and dark backgrounds. */
-function colorForTopic(topic: string | undefined, fallback: string): string {
-	if (!topic) return fallback;
-	let hash = 0;
-	for (let i = 0; i < topic.length; i++) hash = (hash * 31 + topic.charCodeAt(i)) >>> 0;
-	return `hsl(${hash % 360}, 55%, 55%)`;
+/**
+ * Per-top-level-topic OKLCH hue, evenly spaced around the wheel starting
+ * at the site's own current --accent hue (read at call time, so it tracks
+ * the active scheme/mode) — reconciles the graph's categorical palette
+ * with the site's actual theme instead of an unrelated fixed hue set.
+ */
+function computeHueMap(nodes: GraphNode[], accentHex: string): Map<string, number> {
+	const topLevelIds = [...new Set(nodes.filter((n) => n.kind === 'topic' && n.topics.length === 1).map((n) => n.id))].sort();
+	const baseHue = hexToOklchHue(accentHex);
+	const hues = evenlySpacedHues(baseHue, topLevelIds.length);
+	return new Map(topLevelIds.map((id, i) => [id, hues[i]]));
+}
+
+function colorForNode(node: GraphNode, hueMap: Map<string, number>, fallback: string): string {
+	const rootId = node.topics[0];
+	if (!rootId) return fallback;
+	const hue = hueMap.get(rootId);
+	if (hue === undefined) return fallback;
+	if (node.kind === 'topic' && node.topics.length > 1) return subtopicOklch(hue, node.topics.length - 1);
+	return topicOklch(hue);
 }
 
 function readThemeColors() {
@@ -188,15 +204,22 @@ function parseNodeTime(node: SimNode): number | undefined {
 	return Number.isNaN(t) ? undefined : t;
 }
 
+function prefersReducedMotion(): boolean {
+	return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 /**
- * Timeline mode: fixes x by date for every node that has one (force-graph
- * respects `fx` regardless of the simulation's other forces, so y stays
- * free). Disabling clears `fx` so the simulation is free to re-lay-out x
- * too.
+ * Timeline mode: fixes x by date for every node that has one, leaving y to
+ * a live d3-force simulation (the only place one still runs — see
+ * applyDefaultLayout for the normal, precomputed/pinned case). Disabling
+ * clears fx so a re-layout can take over.
  */
 function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
 	if (!enabled) {
-		for (const n of nodes) n.fx = undefined;
+		for (const n of nodes) {
+			n.fx = undefined;
+			n.fy = undefined;
+		}
 		return;
 	}
 	const times = nodes.map(parseNodeTime).filter((t): t is number => t !== undefined);
@@ -210,6 +233,63 @@ function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
 	for (const n of nodes) {
 		const t = parseNodeTime(n);
 		n.fx = t !== undefined ? scale(t) : undefined;
+		n.fy = undefined;
+	}
+}
+
+/**
+ * The default (non-timeline) layout: a fixed ~400-tick, seeded,
+ * rectangle-collision simulation computed once up front (see
+ * lib/graphLayout.ts) — not force-graph's own live, circle-approximated
+ * one. Every node's fx/fy is pinned to the result, so force-graph does no
+ * simulation of its own; nothing reshuffles on load or between builds.
+ * Any label pairs still overlapping after settling are logged, not thrown.
+ */
+function applyDefaultLayout(nodes: SimNode[], fontFamily: string): void {
+	const measureCtx = document.createElement('canvas').getContext('2d');
+	const byId = new Map(nodes.map((n) => [n.id, n]));
+
+	const boxes: LayoutBox[] = nodes.map((n) => {
+		let halfW: number;
+		let halfH: number;
+		if (n.kind === 'topic') {
+			const size = topicFontSize(n);
+			if (measureCtx) {
+				measureCtx.font = `600 ${size}px ${fontFamily}`;
+				halfW = measureCtx.measureText(n.title).width / 2 + 4;
+			} else {
+				halfW = (n.title.length * size * 0.32) + 8;
+			}
+			halfH = size / 2 + 4;
+		} else {
+			halfW = nodeRadius(n) + 6;
+			halfH = halfW;
+		}
+
+		let pullTarget: string | undefined;
+		if (n.kind === 'topic') {
+			pullTarget = n.parent;
+		} else if (n.topics[0] && byId.has(n.topics[0])) {
+			pullTarget = n.topics[0];
+		}
+
+		return { id: n.id, halfW, halfH, pullTarget };
+	});
+
+	const { positions, remainingOverlaps } = layoutGraph(boxes);
+	for (const n of nodes) {
+		const p = positions.get(n.id);
+		if (!p) continue;
+		n.fx = p.x;
+		n.fy = p.y;
+	}
+
+	if (remainingOverlaps.length > 0) {
+		// eslint-disable-next-line no-console
+		console.warn(
+			`[graph layout] ${remainingOverlaps.length} label pair(s) still overlap after settling:`,
+			remainingOverlaps,
+		);
 	}
 }
 
@@ -220,10 +300,6 @@ function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
  * given. This measures each node's actual drawn extent (text bounds for
  * topics, radius for everything else) and fits the camera to that instead.
  */
-function prefersReducedMotion(): boolean {
-	return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
 	if (nodes.length === 0) return;
 	let minX = Infinity;
@@ -263,6 +339,56 @@ function fitToContent(fg: FG, nodes: SimNode[], ms: number) {
 	fg.zoom(k, animMs);
 }
 
+/** Every node whose `topics` chain includes `topicId` (itself included). */
+function subtreeOf(nodes: GraphNode[], topicId: string): Set<string> {
+	const set = new Set<string>();
+	for (const n of nodes) {
+		if (n.id === topicId || n.topics.includes(topicId)) set.add(n.id);
+	}
+	return set;
+}
+
+/** A node's direct neighbors via edges, plus itself. */
+function neighborsOf(edges: GraphEdge[], id: string): Set<string> {
+	const set = new Set<string>([id]);
+	for (const e of edges) {
+		if (e.source === id) set.add(e.target);
+		if (e.target === id) set.add(e.source);
+	}
+	return set;
+}
+
+/**
+ * Keyboard/screen-reader alternative to the canvas: canvas nodes have no
+ * native DOM focus, so this real, tab-reachable (but visually hidden) link
+ * list is the actual accessible path — clicking a node and tabbing to its
+ * equivalent link both end up at the same URL. Ordered topics-by-depth
+ * first (a sensible approximation of the tree, without needing to rebuild
+ * it here), then notes alphabetically.
+ */
+function AccessibleNodeList({ data }: { data: GraphData }) {
+	const items = useMemo(() => {
+		const topics = data.nodes
+			.filter((n) => n.kind === 'topic')
+			.sort((a, b) => a.topics.length - b.topics.length || a.title.localeCompare(b.title));
+		const notes = data.nodes.filter((n) => n.kind !== 'topic').sort((a, b) => a.title.localeCompare(b.title));
+		return [...topics, ...notes];
+	}, [data]);
+
+	return (
+		<ul className="graph-a11y-list">
+			{items.map((n) => (
+				<li key={n.id}>
+					<a href={n.kind === 'topic' ? `/notes/topics/${n.id}/` : `/notes/${n.id}/`}>
+						{n.title}
+						{n.kind === 'topic' && ` — ${n.noteCount ?? 0} note${n.noteCount === 1 ? '' : 's'}`}
+					</a>
+				</li>
+			))}
+		</ul>
+	);
+}
+
 export default function Graph({
 	data,
 	focusId,
@@ -281,27 +407,64 @@ export default function Graph({
 		card: '#fff',
 		fontFamily: 'ui-monospace, monospace',
 	});
+	const hueMapRef = useRef<Map<string, number>>(new Map());
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
+	const hoveredTopicRef = useRef<string | null>(null);
 	const timelineRef = useRef(timeline);
 	const zoomedOnceRef = useRef(false);
 	const [interacted, setInteracted] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+
+	useEffect(() => {
+		const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+		setIsMobile(mq.matches);
+		const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+		mq.addEventListener('change', onChange);
+		return () => mq.removeEventListener('change', onChange);
+	}, []);
+
+	// Below the mobile breakpoint, 45+ labels crammed into ~360px is just
+	// noise — collapse to top-level topics only (no notes, no subtopics),
+	// laid out the same way but with far fewer, larger, tap-friendly labels.
+	const baseData = useMemo(() => {
+		if (!isMobile) return data;
+		const topLevel = data.nodes.filter((n) => n.kind === 'topic' && n.topics.length === 1);
+		const ids = new Set(topLevel.map((n) => n.id));
+		return { nodes: topLevel, edges: data.edges.filter((e) => ids.has(e.source) && ids.has(e.target)) };
+	}, [data, isMobile]);
 
 	const graphData = useMemo(() => {
-		if (!focusId) return data;
-		const edgesWithBroken: Array<GraphEdge & { broken: boolean }> = data.edges.map((e) => ({
+		if (!focusId) return baseData;
+		const edgesWithBroken: Array<GraphEdge & { broken: boolean }> = baseData.edges.map((e) => ({
 			...e,
 			broken: false,
 		}));
-		return neighborhood({ nodes: data.nodes, edges: edgesWithBroken }, focusId, depth);
-	}, [data, focusId, depth]);
+		return neighborhood({ nodes: baseData.nodes, edges: edgesWithBroken }, focusId, depth);
+	}, [baseData, focusId, depth]);
 
 	const graphDataRef = useRef(graphData);
+
+	function relayout(fg: FG | null) {
+		if (!fg) return;
+		hueMapRef.current = computeHueMap(graphDataRef.current.nodes, colorsRef.current.accent);
+		if (timelineRef.current) {
+			pinNodesByDate(graphDataRef.current.nodes, true);
+			fg.cooldownTime(prefersReducedMotion() ? 0 : 1500);
+			fg.d3ReheatSimulation();
+		} else {
+			applyDefaultLayout(graphDataRef.current.nodes, colorsRef.current.fontFamily);
+			fg.cooldownTicks(0);
+			fg.d3ReheatSimulation();
+		}
+		zoomedOnceRef.current = false;
+	}
+
 	useEffect(() => {
 		graphDataRef.current = graphData;
 		fgRef.current?.graphData({ nodes: graphData.nodes, links: graphData.edges });
-		pinNodesByDate(graphData.nodes, timelineRef.current);
-		if (timelineRef.current) fgRef.current?.d3ReheatSimulation();
+		relayout(fgRef.current);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [graphData]);
 
 	useEffect(() => {
@@ -314,8 +477,8 @@ export default function Graph({
 
 	useEffect(() => {
 		timelineRef.current = timeline;
-		pinNodesByDate(graphDataRef.current.nodes, timeline);
-		fgRef.current?.d3ReheatSimulation();
+		relayout(fgRef.current);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [timeline]);
 
 	useEffect(() => {
@@ -332,12 +495,27 @@ export default function Graph({
 			if (disposed) return;
 
 			colorsRef.current = readThemeColors();
+			hueMapRef.current = computeHueMap(graphDataRef.current.nodes, colorsRef.current.accent);
 
-			const nodeColor = (node: SimNode) => colorForTopic(node.topics[0], colorsRef.current.muted);
+			const nodeColor = (node: SimNode) => colorForNode(node, hueMapRef.current, colorsRef.current.muted);
 			const isFaded = (node: SimNode) => node.status === 'orphan' || node.status === 'synthesized';
 			const isHighlighted = (node: SimNode) =>
 				(!!highlightRef.current && node.title.toLowerCase().includes(highlightRef.current)) ||
 				highlightIdsRef.current.has(node.id);
+			// Hover-dim: when a topic is hovered, everything outside its
+			// subtree dims to ~25%; hovering a note dims everything outside
+			// its direct connections. No hover active -> normal fade rules.
+			const dimAlpha = (node: SimNode): number | null => {
+				const hovered = hoveredTopicRef.current;
+				if (!hovered) return null;
+				const hoveredNode = graphDataRef.current.nodes.find((n) => n.id === hovered);
+				if (!hoveredNode) return null;
+				const activeSet =
+					hoveredNode.kind === 'topic'
+						? subtreeOf(graphDataRef.current.nodes, hovered)
+						: neighborsOf(graphDataRef.current.edges, hovered);
+				return activeSet.has(node.id) ? null : 0.25;
+			};
 
 			fg = new ForceGraph<SimNode, GraphEdge>(el)
 				.backgroundColor('rgba(0,0,0,0)')
@@ -347,7 +525,22 @@ export default function Graph({
 				.linkTarget('target')
 				.linkWidth(1)
 				.linkCurvature(0.15)
-				.linkColor(() => colorsRef.current.border)
+				.linkColor((edge) => {
+					const hovered = hoveredTopicRef.current;
+					if (!hovered) return colorsRef.current.border;
+					const hoveredNode = graphDataRef.current.nodes.find((n) => n.id === hovered);
+					if (!hoveredNode) return colorsRef.current.border;
+					const activeSet =
+						hoveredNode.kind === 'topic'
+							? subtreeOf(graphDataRef.current.nodes, hovered)
+							: neighborsOf(graphDataRef.current.edges, hovered);
+					const s = typeof edge.source === 'string' ? edge.source : (edge.source as SimNode).id;
+					const t = typeof edge.target === 'string' ? edge.target : (edge.target as SimNode).id;
+					const active = activeSet.has(s) && activeSet.has(t);
+					return active
+						? colorsRef.current.border
+						: `color-mix(in srgb, ${colorsRef.current.border} 25%, transparent)`;
+				})
 				.linkLineDash((edge) => edgeDash(edge.type))
 				.nodeColor(nodeColor)
 				.nodeLabel((node) => {
@@ -357,15 +550,23 @@ export default function Graph({
 						: '';
 					return `<strong>${title}</strong>${summary}`;
 				})
+				.onNodeHover((node) => {
+					const next = node ? node.id : null;
+					if (hoveredTopicRef.current !== next) {
+						hoveredTopicRef.current = next;
+						fg?.nodeColor(fg.nodeColor());
+					}
+				})
 				.nodeCanvasObject((node, ctx) => {
 					const { x = 0, y = 0 } = node;
 					const faded = isFaded(node);
 					const highlighted = isHighlighted(node);
+					const dim = dimAlpha(node);
 
 					if (node.kind === 'topic') {
 						const size = topicFontSize(node);
 						ctx.save();
-						ctx.globalAlpha = faded ? 0.55 : 1;
+						ctx.globalAlpha = dim ?? (faded ? 0.55 : 1);
 						ctx.font = `${faded ? '' : '600 '}${size}px ${colorsRef.current.fontFamily}`;
 						ctx.textAlign = 'center';
 						ctx.textBaseline = 'middle';
@@ -382,7 +583,7 @@ export default function Graph({
 
 					const r = nodeRadius(node);
 					ctx.save();
-					ctx.globalAlpha = faded ? 0.5 : 1;
+					ctx.globalAlpha = dim ?? (faded ? 0.5 : 1);
 					ctx.fillStyle = nodeColor(node);
 					ctx.strokeStyle = colorsRef.current.border;
 					ctx.lineWidth = 1.25;
@@ -427,23 +628,24 @@ export default function Graph({
 					fitToContent(fg, graphDataRef.current.nodes, 400);
 				})
 				.enableNodeDrag(true)
-				// force-graph's default cooldownTime is 15s — with d3AlphaMin at
-				// its own default of 0, that's also the only thing that ends the
-				// simulation, so onEngineStop (and the initial fit-to-content it
-				// triggers) wouldn't fire until then. These graphs are small
-				// enough to visually settle in well under a second. Reduced
-				// motion skips the visible settling animation entirely — see
-				// Phase 5 for the deterministic, non-live layout this replaces.
-				.cooldownTime(prefersReducedMotion() ? 0 : 1500);
+				// Default layout is fully precomputed and pinned (see
+				// applyDefaultLayout) — cooldownTicks(0) below means force-graph
+				// runs no simulation of its own on load. Timeline mode
+				// re-enables a real cooldown dynamically (see relayout()) since
+				// it still needs a live simulation for y. Reduced motion skips
+				// whatever settling animation is active either way.
+				.cooldownTicks(0);
 
 			// More breathing room than the library defaults: stronger repulsion
-			// and longer link distance so clusters separate instead of clumping.
+			// and longer link distance so clusters separate instead of clumping
+			// (only matters in timeline mode now — the default layout doesn't
+			// use force-graph's own simulation at all).
 			fg.d3Force('charge')?.strength(-160);
 			fg.d3Force('link')?.distance(70);
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });
-			pinNodesByDate(graphDataRef.current.nodes, timelineRef.current);
+			relayout(fg);
 
 			const resize = () => {
 				const rect = el.getBoundingClientRect();
@@ -455,9 +657,10 @@ export default function Graph({
 
 			const refreshTheme = () => {
 				colorsRef.current = readThemeColors();
+				hueMapRef.current = computeHueMap(graphDataRef.current.nodes, colorsRef.current.accent);
 				// Re-assign the same accessors so force-graph re-reads colorsRef and
 				// repaints — without this the canvas only redraws on interaction.
-				fg?.nodeColor(nodeColor).linkColor(() => colorsRef.current.border);
+				fg?.nodeColor(nodeColor).linkColor(fg.linkColor());
 			};
 			themeObserver = new MutationObserver(refreshTheme);
 			themeObserver.observe(document.documentElement, {
@@ -546,6 +749,7 @@ export default function Graph({
 					Reset view
 				</button>
 			)}
+			<AccessibleNodeList data={graphData} />
 		</div>
 	);
 }
