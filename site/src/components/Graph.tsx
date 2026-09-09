@@ -361,6 +361,59 @@ function rectCollideForce(extentsRef: { current: Map<string, HalfExtent> }) {
 	return force;
 }
 
+type RadialTarget = { x: number; y: number };
+
+/**
+ * Evenly spaces the top-level topics around a circle — left purely to
+ * charge/link forces, a well-connected topic (lots of children/notes
+ * pulling it inward via the link force) clumps together with its equally
+ * well-connected neighbors, while a sparse one (few or no children) has
+ * nothing holding it in place and drifts wherever repulsion happens to
+ * push it, sometimes far off on its own. Order is alphabetical by id, so
+ * which topic lands at which angle is at least stable across reloads.
+ */
+function computeRadialTargets(nodes: GraphNode[]): Map<string, RadialTarget> {
+	const topLevel = [...new Set(nodes.filter((n) => n.kind === 'topic' && n.topics.length === 1).map((n) => n.id))].sort();
+	const targets = new Map<string, RadialTarget>();
+	if (topLevel.length === 0) return targets;
+	// Scales with count so more topics don't get any more cramped than fewer.
+	const radius = Math.max(260, topLevel.length * 55);
+	topLevel.forEach((id, i) => {
+		const angle = (2 * Math.PI * i) / topLevel.length - Math.PI / 2;
+		targets.set(id, { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+	});
+	return targets;
+}
+
+/**
+ * A d3-force-compatible custom force: gently nudges each top-level topic
+ * toward its evenly-spaced target position (see computeRadialTargets).
+ * Deliberately weak relative to charge/link/rectCollide — it's a mild
+ * organizing pull, not a pin, so the graph still looks like an organic
+ * simulation rather than nodes snapping to a circle. Subtopics and notes
+ * have no target here and are left entirely to the other forces, which is
+ * what lets them cluster naturally around their own parent topic.
+ */
+function radialSpreadForce(targetsRef: { current: Map<string, RadialTarget> }) {
+	const STRENGTH = 0.12;
+	let nodes: SimNode[] = [];
+	function force(alpha: number) {
+		const targets = targetsRef.current;
+		for (const n of nodes) {
+			const target = targets.get(n.id);
+			if (!target || n.fx !== undefined) continue;
+			const x = n.x ?? 0;
+			const y = n.y ?? 0;
+			n.vx = (n.vx ?? 0) + (target.x - x) * alpha * STRENGTH;
+			n.vy = (n.vy ?? 0) + (target.y - y) * alpha * STRENGTH;
+		}
+	}
+	force.initialize = (ns: SimNode[]) => {
+		nodes = ns;
+	};
+	return force;
+}
+
 /**
  * Replaces force-graph's built-in zoomToFit, which only measures node
  * *positions* — topic nodes render as text well outside their tiny point
@@ -477,6 +530,7 @@ export default function Graph({
 	});
 	const hueMapRef = useRef<Map<string, number>>(new Map());
 	const extentsRef = useRef<Map<string, HalfExtent>>(new Map());
+	const radialTargetsRef = useRef<Map<string, RadialTarget>>(new Map());
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
 	const hoveredTopicRef = useRef<string | null>(null);
@@ -518,6 +572,7 @@ export default function Graph({
 		if (!fg) return;
 		hueMapRef.current = computeHueMap(graphDataRef.current.nodes, colorsRef.current.accent);
 		extentsRef.current = measureHalfExtents(graphDataRef.current.nodes, colorsRef.current.fontFamily);
+		radialTargetsRef.current = computeRadialTargets(graphDataRef.current.nodes);
 		if (timelineRef.current) {
 			pinNodesByDate(graphDataRef.current.nodes, true);
 		} else {
@@ -716,6 +771,9 @@ export default function Graph({
 			// reads live extents/positions off the refs every tick, so it keeps
 			// working through settling, hover, and drag alike.
 			fg.d3Force('rectCollide', rectCollideForce(extentsRef));
+			// Keeps top-level topics evenly spread instead of well-connected
+			// ones clumping together and sparse ones drifting off alone.
+			fg.d3Force('radialSpread', radialSpreadForce(radialTargetsRef));
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });
