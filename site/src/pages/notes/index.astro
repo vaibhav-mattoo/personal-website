@@ -29,6 +29,10 @@ const graphData = await getGraphData();
 
 	<TerminalPrompt command="ls notes/" />
 
+	<section class="section graph-breakout">
+		<GraphExplorer client:visible data={graphData} />
+	</section>
+
 	{
 		roots.length > 0 && (
 			<section class="section">
@@ -42,10 +46,6 @@ const graphData = await getGraphData();
 			</section>
 		)
 	}
-
-	<section class="section">
-		<GraphExplorer client:visible data={graphData} />
-	</section>
 
 	{
 		recentNotes.length > 0 && (
@@ -118,9 +118,22 @@ const graphData = await getGraphData();
 	}
 
 	.topic-tree {
+		max-width: 640px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+
+	/* Lets just the graph section widen past the page's normal
+	   --w-content container, up to --w-wide, while staying centered —
+	   the classic full-bleed-from-a-centered-container trick. Everything
+	   else on the page stays at the narrower measure. */
+	.graph-breakout {
+		width: 100vw;
+		max-width: var(--w-wide);
+		margin-left: 50%;
+		transform: translateX(-50%);
+		padding-inline: var(--s-6);
 	}
 
 	/* A quiet, compact footer list — not competing with Topics/the graph
@@ -182,53 +195,56 @@ const graphData = await getGraphData();
 	:global(.graph-explorer) {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	:global(.graph-explorer__controls) {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.75rem;
+		gap: var(--s-3);
 	}
 
 	:global(.graph-explorer__search) {
-		flex: 1 1 14rem;
-		min-width: 0;
-		padding: 0.5rem 0.75rem;
-		border: 1px solid var(--border);
+		width: 100%;
+		min-height: 44px;
+		padding: var(--s-2) var(--s-4);
+		border: 1px solid transparent;
 		border-radius: var(--radius);
-		background: var(--bg);
+		background: var(--surface);
 		color: var(--fg);
 		font-family: var(--font-body);
-		font-size: 0.9rem;
+		font-size: var(--text-base);
 	}
 
-	:global(.graph-explorer__search:focus) {
-		outline: none;
+	:global(.graph-explorer__search:focus-visible) {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent);
+	}
+
+	/* Topic filter chips + the Timeline toggle, one row directly under the
+	   graph (previously above it, where "Timeline" ended up orphaned on
+	   its own wrapped line). */
+	:global(.graph-explorer__filter-row) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--s-3);
 	}
 
 	:global(.graph-explorer__chips) {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
+		gap: var(--s-2);
 	}
 
 	:global(.graph-explorer__chip) {
-		padding: 0.35rem 0.75rem;
-		border: 1px solid var(--border);
+		min-height: 44px;
+		padding: var(--s-2) var(--s-4);
+		border: 1px solid transparent;
 		border-radius: 999px;
-		background: var(--card);
+		background: var(--surface);
 		color: var(--fg);
 		font-family: var(--font-display);
 		font-size: 0.78rem;
 		cursor: pointer;
 		transition:
-			border-color 0.15s,
-			color 0.15s,
-			background-color 0.15s;
+			border-color var(--dur-fast) var(--ease),
+			color var(--dur-fast) var(--ease),
+			background-color var(--dur-fast) var(--ease);
 	}
 
 	:global(.graph-explorer__chip:hover) {
@@ -310,9 +326,8 @@ const graphData = await getGraphData();
 
 	:global(.graph-canvas) {
 		width: 100%;
-		height: 50vh;
-		min-height: 20rem;
-		border: 1px solid var(--border);
+		height: clamp(420px, 68vh, 720px);
+		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-lg);
 		background: var(--bg);
 	}

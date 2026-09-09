@@ -170,15 +170,44 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 
 	return (
 		<div className="graph-explorer">
-			<div className="graph-explorer__controls">
-				<input
-					type="search"
-					className="graph-explorer__search"
-					placeholder="Search notes…"
-					value={query}
-					onChange={(e) => setQuery(e.target.value)}
-					aria-label="Search notes by title or full text"
-				/>
+			<input
+				type="search"
+				className="graph-explorer__search"
+				placeholder="Search notes…"
+				value={query}
+				onChange={(e) => setQuery(e.target.value)}
+				aria-label="Search notes by title or full text"
+			/>
+
+			{searching && hits.length > 0 && (
+				<ul className="graph-explorer__results">
+					{hits.map((hit) => (
+						<li key={hit.id}>
+							<a href={hit.url} className="graph-explorer__result">
+								<span className="graph-explorer__result-title">{hit.title}</span>
+								<span
+									className="graph-explorer__result-excerpt"
+									// Pagefind returns the excerpt as HTML with the matched
+									// terms already wrapped in <mark> — that's the whole
+									// point of asking it for one.
+									dangerouslySetInnerHTML={{ __html: hit.excerpt }}
+								/>
+							</a>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{searching && pagefindUnavailable && (
+				<p className="graph-explorer__results-hint">
+					Full-text results need a production build — run <code>npm run build</code>. Titles still highlight
+					below.
+				</p>
+			)}
+
+			<Graph data={filtered} highlightQuery={query} highlightIds={highlightIds} timeline={timeline} />
+
+			<div className="graph-explorer__filter-row">
 				<div className="graph-explorer__chips" role="group" aria-label="Filter by topic">
 					{topLevelTopics.map((id) => (
 						<button
@@ -214,34 +243,6 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 					Timeline
 				</button>
 			</div>
-
-			{searching && hits.length > 0 && (
-				<ul className="graph-explorer__results">
-					{hits.map((hit) => (
-						<li key={hit.id}>
-							<a href={hit.url} className="graph-explorer__result">
-								<span className="graph-explorer__result-title">{hit.title}</span>
-								<span
-									className="graph-explorer__result-excerpt"
-									// Pagefind returns the excerpt as HTML with the matched
-									// terms already wrapped in <mark> — that's the whole
-									// point of asking it for one.
-									dangerouslySetInnerHTML={{ __html: hit.excerpt }}
-								/>
-							</a>
-						</li>
-					))}
-				</ul>
-			)}
-
-			{searching && pagefindUnavailable && (
-				<p className="graph-explorer__results-hint">
-					Full-text results need a production build — run <code>npm run build</code>. Titles still highlight
-					below.
-				</p>
-			)}
-
-			<Graph data={filtered} highlightQuery={query} highlightIds={highlightIds} timeline={timeline} />
 
 			<div className="graph-explorer__legend" aria-label="Edge style legend">
 				{edgeTypesPresent.map((type) => {
