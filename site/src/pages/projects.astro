@@ -7,7 +7,7 @@ import '../styles/projects-page.css';
 
 const meta = await fetchRepoMeta(
 	githubUsername,
-	projects.map((p) => p.slug),
+	projects.map((p) => p.repo),
 );
 ---
 
@@ -15,8 +15,8 @@ const meta = await fetchRepoMeta(
 	<header class="head">
 		<h1>Projects</h1>
 		<p>
-			Open-source things I've built. Stars and descriptions are pulled from GitHub at
-			build time.
+			Open-source things I've built. Stars are pulled from GitHub at build time; everything
+			else is hand-written.
 		</p>
 	</header>
 
@@ -25,11 +25,9 @@ const meta = await fetchRepoMeta(
 	<div class="cards">
 		{
 			projects.map((p) => {
-				const repoUrl = `https://github.com/${githubUsername}/${p.slug}`;
-				const repoMeta = meta[p.slug];
-				const displayName = p.name ?? p.slug;
-				const tagline = p.tagline ?? repoMeta?.description ?? '';
-				const stars = repoMeta?.stars;
+				const repoUrl = `https://github.com/${githubUsername}/${p.repo}`;
+				const stars = meta[p.repo]?.stars;
+				const displayName = p.name ?? p.repo;
 
 				return (
 					<article class="card">
@@ -46,27 +44,25 @@ const meta = await fetchRepoMeta(
 							</a>
 						)}
 
-						<time class="card__date">{p.date}</time>
+						<div class="card__meta">
+							<time class="card__date">{p.year}</time>
+							{p.role && <span class="card__role">{p.role}</span>}
+						</div>
 
-						<a
-							class="card__title"
-							href={repoUrl}
-							target="_blank"
-							rel="noopener"
-						>
+						<a class="card__title" href={repoUrl} target="_blank" rel="noopener">
 							{displayName}
 						</a>
 
-						{tagline && <p class="card__tagline">{tagline}</p>}
+						<p class="card__tagline">{p.blurb}</p>
 
 						<div class="card__links">
 							{p.writeup && <a class="link" href={p.writeup}>Article</a>}
-							{p.url && (
-								<a class="link" href={p.url} target="_blank" rel="noopener">
+							{p.demo && (
+								<a class="link" href={p.demo} target="_blank" rel="noopener">
 									Demo ↗
 								</a>
 							)}
-							<a class="link" href={repoUrl} target="_blank" rel="noopener">
+							<a class="link link--source" href={repoUrl} target="_blank" rel="noopener">
 								Source ↗
 							</a>
 						</div>

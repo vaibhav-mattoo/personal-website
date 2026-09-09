@@ -1,11 +1,10 @@
 ---
 import Base from '../../layouts/Base.astro';
 import TerminalPrompt from '../../components/TerminalPrompt.astro';
-import SectionTile from '../../components/SectionTile.astro';
 
 const items = [
-	{ label: 'Current tasks', href: '/tasks/boards/', external: false },
-	{ label: 'Calendar', href: '/tasks/calendar/', external: false },
+	{ name: 'boards/', href: '/tasks/boards/', blurb: "Boards I'm actively working on" },
+	{ name: 'calendar/', href: '/tasks/calendar/', blurb: 'Book 30 minutes with me' },
 ];
 ---
 
@@ -17,17 +16,14 @@ const items = [
 
 	<TerminalPrompt command="ls tasks/" />
 
-	<nav class="tiles">
+	<nav class="cards">
 		{
-			items.map((i) =>
-				i.external ? (
-					<a class="tile-ext" href={i.href} target="_blank" rel="noopener">
-						{i.label} ↗
-					</a>
-				) : (
-					<SectionTile label={i.label} href={i.href} />
-				),
-			)
+			items.map((i) => (
+				<a class="card" href={i.href}>
+					<span class="card__name">{i.name}</span>
+					<span class="card__blurb">{i.blurb}</span>
+				</a>
+			))
 		}
 	</nav>
 </Base>
@@ -50,37 +46,45 @@ const items = [
 		font-family: var(--font-body);
 	}
 
-	.tiles {
+	.cards {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--s-3);
+		gap: var(--s-4);
 		margin: var(--s-1) 0 var(--s-4);
 	}
 
-	.tile-ext {
+	.card {
 		display: flex;
-		flex: 0 0 auto;
-		align-items: center;
-		justify-content: center;
-		min-height: 44px;
-		padding: var(--s-3) var(--s-5);
+		flex-direction: column;
+		gap: var(--s-2);
+		flex: 1 1 220px;
+		max-width: 260px;
+		padding: var(--s-4) var(--s-5);
 		border: 1px solid transparent;
-		border-radius: var(--radius);
+		border-radius: var(--radius-lg);
 		background: var(--surface);
-		font-family: var(--font-display);
-		font-size: 0.82rem;
-		color: var(--fg);
 		text-decoration: none;
 		transition:
 			border-color var(--dur-fast) var(--ease),
-			color var(--dur-fast) var(--ease),
 			background-color var(--dur-fast) var(--ease);
 	}
 
-	.tile-ext:hover {
+	.card:hover {
 		border-color: var(--accent);
-		color: var(--accent);
 		background: var(--accent-soft);
+	}
+
+	.card__name {
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.card__blurb {
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		color: var(--fg);
 	}
 </style>
 

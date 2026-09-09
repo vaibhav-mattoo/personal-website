@@ -1,37 +1,39 @@
 export type Project = {
-	/** GitHub repo name (matches the slug in the URL). */
-	slug: string;
-	/** Optional display name. Defaults to slug. */
+	/** GitHub repo name — used for the Source link and to match GitHub stars. */
+	repo: string;
+	/** Optional display name. Defaults to repo. */
 	name?: string;
-	/** Optional override. Defaults to the repo's GitHub description. */
-	tagline?: string;
-	/** Human-friendly date (e.g. "March 2026"). Used for display + sort. */
-	date: string;
+	/** Hand-written description — always this, never GitHub's auto description. */
+	blurb?: string;
+	/** Human-friendly "when" (e.g. "March 2026"). Used for display + sort. */
+	year: string;
+	/** Optional one-line role, e.g. "Solo project", "Team lead". */
+	role?: string;
 	/** Optional internal link to a writeup note. */
 	writeup?: string;
-	/** Optional live demo URL. */
-	url?: string;
+	/** Optional live demo URL — a second link next to Source when set. */
+	demo?: string;
 };
 
 export const githubUsername = 'vaibhav-mattoo';
 
 /**
  * To add a project:
- *   1. Push the repo to GitHub under `vaibhav-mattoo/<slug>`.
- *   2. Add an entry below — `slug` and `date` are the only required fields.
- *   3. (Optional) override `tagline` or `name` if the GitHub description
- *      isn't what you want shown.
- *   4. git commit && git push — CI rebuilds with fresh star counts.
+ *   1. Push the repo to GitHub under `vaibhav-mattoo/<repo>`.
+ *   2. Add an entry below — `repo` and `year` are the only required fields.
+ *      `blurb` is yours to write; it's never replaced by GitHub's
+ *      description (unlike the old `tagline` fallback this replaced).
+ *   3. git commit && git push — CI rebuilds with fresh star counts.
  *
  * Order in this array = order on the page (top-first).
  */
 export const projects: Project[] = [
 	{
-		slug: 'bitchat-tui',
-		date: 'February 2026',
+		repo: 'bitchat-tui',
+		year: 'February 2026',
 	},
 	{
-		slug: 'alman',
-		date: 'January 2026',
+		repo: 'alman',
+		year: 'January 2026',
 	},
 ];
