@@ -70,6 +70,40 @@
 	border-top: 1px solid var(--border);
 }
 
+/* Toggle/collapsible blocks — plain <details>/<summary> raw HTML, which
+   Astro's markdown pipeline already passes through untouched (no plugin
+   needed); this just gives it the site's look instead of the browser
+   default disclosure triangle on a bare background. */
+.prose details {
+	margin: 1.25rem 0;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--surface);
+}
+
+.prose details[open] summary {
+	margin-bottom: 0.75rem;
+}
+
+.prose details > :last-child {
+	margin-bottom: 0;
+}
+
+.prose summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--fg);
+}
+
+.prose summary:hover {
+	color: var(--accent);
+}
+
+.prose summary::marker {
+	color: var(--muted);
+}
+
 /* Code blocks — expressive-code renders its own frame; these rules cover the
    plain <pre> fallback and cap tall blocks the way fumadocs does. */
 .prose pre {
@@ -137,6 +171,66 @@
 
 .prose blockquote :last-child {
 	margin-bottom: 0;
+}
+
+/* GitHub-style alert blocks — `> [!NOTE]` etc, rewritten to <div
+   class="callout callout-note"> by remark-callout.mjs. Not italic (unlike
+   the plain blockquote above): these read as structured admonitions, not
+   quoted speech. */
+.prose .callout {
+	margin: 1.25rem 0;
+	padding: 0.75rem 1rem;
+	border-left: 3px solid var(--callout-note);
+	background: color-mix(in srgb, var(--callout-note) 10%, var(--bg));
+	border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+	color: var(--fg);
+}
+
+.prose .callout > :first-child {
+	margin-top: 0;
+}
+
+.prose .callout > :last-child {
+	margin-bottom: 0;
+}
+
+.prose .callout-title {
+	margin: 0 0 0.35rem;
+	font-family: var(--font-display);
+	font-weight: 700;
+	color: var(--callout-note);
+}
+
+.prose .callout-tip {
+	border-left-color: var(--callout-tip);
+	background: color-mix(in srgb, var(--callout-tip) 10%, var(--bg));
+}
+.prose .callout-tip .callout-title {
+	color: var(--callout-tip);
+}
+
+.prose .callout-important {
+	border-left-color: var(--callout-important);
+	background: color-mix(in srgb, var(--callout-important) 10%, var(--bg));
+}
+.prose .callout-important .callout-title {
+	color: var(--callout-important);
+}
+
+.prose .callout-warning {
+	border-left-color: var(--callout-warning);
+	background: color-mix(in srgb, var(--callout-warning) 10%, var(--bg));
+}
+.prose .callout-warning .callout-title {
+	color: var(--callout-warning);
+}
+
+.prose .callout-caution {
+	border-left-color: var(--callout-caution);
+	background: color-mix(in srgb, var(--callout-caution) 10%, var(--bg));
+}
+.prose .callout-caution .callout-title {
+	color: var(--callout-caution);
 }
 
 .prose figure:has(img) {

@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeFigure from 'rehype-figure';
 import remarkWikilink from './src/plugins/remark-wikilink.mjs';
+import remarkCallout from './src/plugins/remark-callout.mjs';
 import { runLinkReport } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
@@ -128,7 +129,7 @@ export default defineConfig({
 		},
 	],
 	markdown: {
-		remarkPlugins: [remarkWikilink, remarkMath],
+		remarkPlugins: [remarkWikilink, remarkCallout, remarkMath],
 		rehypePlugins: [
 			rehypeKatex,
 			[

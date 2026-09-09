@@ -91,6 +91,16 @@
 	--card: #f2ead4;
 	--code-bg: #f7f1e0;
 	--rail: color-mix(in srgb, var(--fg) 12%, transparent);
+
+	/* Callout ([!NOTE]-style alert block) colors — fixed semantic hues
+	   (GitHub's own Primer palette), independent of --accent/data-scheme
+	   on purpose: a warning should read as a warning regardless of which
+	   of the 5 accent schemes is active. */
+	--callout-note: #0969da;
+	--callout-tip: #1a7f37;
+	--callout-important: #8250df;
+	--callout-warning: #9a6700;
+	--callout-caution: #cf222e;
 }
 
 [data-mode='dark'] {
@@ -101,6 +111,12 @@
 	--card: #2a2a31;
 	--code-bg: #232328;
 	--rail: color-mix(in srgb, var(--fg) 14%, transparent);
+
+	--callout-note: #4493f8;
+	--callout-tip: #3fb950;
+	--callout-important: #ab7df8;
+	--callout-warning: #d29922;
+	--callout-caution: #f85149;
 }
 
 /* Accents — light-dark pairs from taniarascia.com.
