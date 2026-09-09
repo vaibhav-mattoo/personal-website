@@ -37,10 +37,8 @@
 .sheet-title {
 	margin: 0 0 0.5rem;
 	padding: 0 0.5rem;
-	font-size: 0.7rem;
+	font-size: var(--text-sm);
 	font-weight: 600;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
 	color: var(--muted);
 }
 
