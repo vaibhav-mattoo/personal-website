@@ -1,8 +1,20 @@
 ---
 import Base from '../layouts/Base.astro';
 import TerminalPrompt from '../components/TerminalPrompt.astro';
-import SectionTile from '../components/SectionTile.astro';
-import { sidebarSections } from '../config/sidebar';
+import FastFetch from '../components/FastFetch.astro';
+import Socials from '../components/Socials.astro';
+import { getPublicVault } from '../lib/vault';
+import { projects } from '../config/projects';
+
+const { entries } = await getPublicVault();
+const notesCount = entries.length;
+const projectsCount = projects.length;
+
+const cards = [
+	{ name: 'notes/', href: '/notes/', count: notesCount, blurb: "Things I've written" },
+	{ name: 'projects/', href: '/projects/', count: projectsCount, blurb: "Open-source things I've built" },
+	{ name: 'tasks/', href: '/tasks/', count: null, blurb: "What I'm working on" },
+];
 ---
 
 <Base>
@@ -13,18 +25,29 @@ import { sidebarSections } from '../config/sidebar';
 
 	<TerminalPrompt command="ls" />
 
-	<nav class="tiles">
-		{sidebarSections.map((s) => <SectionTile label={s.label} href={s.href} />)}
+	<nav class="cards">
+		{
+			cards.map((c) => (
+				<a class="card" href={c.href}>
+					<span class="card__head">
+						<span class="card__name">{c.name}</span>
+						{c.count !== null && <span class="card__count tabular-nums">{c.count}</span>}
+					</span>
+					<span class="card__blurb">{c.blurb}</span>
+				</a>
+			))
+		}
 	</nav>
 
-	<TerminalPrompt command="cat about.md" />
+	<TerminalPrompt command="fastfetch" />
+
+	<FastFetch notesCount={notesCount} projectsCount={projectsCount} />
 
 	<article class="about">
-		<p>
-			I write notes and keep projects here. Pick a section from the tiles above or
-			the sidebar — both read from the same config list.
-		</p>
+		<p>I write notes and keep projects here. Pick a section from the cards above or the sidebar.</p>
 	</article>
+
+	<Socials />
 </Base>
 
 <style>
@@ -48,14 +71,71 @@ import { sidebarSections } from '../config/sidebar';
 		line-height: var(--leading-body);
 	}
 
-	.tiles {
+	.cards {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--s-3);
+		gap: var(--s-4);
 		margin: var(--s-1) 0 var(--s-4);
 	}
 
+	.card {
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-2);
+		flex: 1 1 220px;
+		max-width: 260px;
+		padding: var(--s-4) var(--s-5);
+		border: 1px solid transparent;
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		text-decoration: none;
+		transition:
+			border-color var(--dur-fast) var(--ease),
+			background-color var(--dur-fast) var(--ease);
+	}
+
+	.card:hover {
+		border-color: var(--accent);
+		background: var(--accent-soft);
+	}
+
+	.card__head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--s-2);
+	}
+
+	.card__name {
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.card__count {
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.card__blurb {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		/* Reserves space for 2 lines regardless of actual length, so a
+		   one-line and a two-line blurb still produce identical card
+		   heights (flex row + this instead of a fixed height on .card). */
+		min-height: calc(1.35em * 2);
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		line-height: 1.35;
+		color: var(--fg);
+	}
+
 	.about {
+		margin-top: var(--s-6);
 		font-family: var(--font-body);
 		color: var(--fg);
 		line-height: 1.7;
@@ -63,6 +143,6 @@ import { sidebarSections } from '../config/sidebar';
 	}
 
 	.about p {
-		margin: 0 0 1rem;
+		margin: 0;
 	}
 </style>

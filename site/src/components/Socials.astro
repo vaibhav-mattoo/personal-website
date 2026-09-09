@@ -1,0 +1,95 @@
+---
+import GitHubIcon from './icons/GitHub.astro';
+import MailIcon from './icons/Mail.astro';
+import { socials, tildeCommunities } from '../config/socials';
+---
+
+<section class="socials" aria-label="Elsewhere">
+	<ul class="socials__list">
+		{
+			socials.map((s) => (
+				<li>
+					<a class="socials__link" href={s.href} target="_blank" rel="noopener" aria-label={s.label}>
+						{s.icon === 'github' ? <GitHubIcon /> : <MailIcon />}
+						<span>{s.label}</span>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+
+	<p class="socials__ps">
+		PS: for cool people —
+		{
+			tildeCommunities.map((t, i) => (
+				<>
+					{i > 0 && ', '}
+					<a class="socials__tilde" href={t.href} target="_blank" rel="noopener">
+						<span class="socials__tilde-glyph" aria-hidden="true">~</span>
+						{t.label}
+					</a>
+				</>
+			))
+		}
+	</p>
+</section>
+
+<style>
+	.socials {
+		margin-top: var(--s-9);
+	}
+
+	.socials__list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-3);
+		margin: 0 0 var(--s-3);
+		padding: 0;
+		list-style: none;
+	}
+
+	.socials__link {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--s-2);
+		min-height: 44px;
+		padding: var(--s-2) var(--s-4);
+		border: 1px solid transparent;
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--fg);
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		text-decoration: none;
+		transition:
+			border-color var(--dur-fast) var(--ease),
+			color var(--dur-fast) var(--ease),
+			background-color var(--dur-fast) var(--ease);
+	}
+
+	.socials__link:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: var(--accent-soft);
+	}
+
+	.socials__ps {
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.socials__tilde {
+		color: var(--accent);
+		text-decoration: none;
+	}
+
+	.socials__tilde:hover {
+		text-decoration: underline;
+	}
+
+	.socials__tilde-glyph {
+		font-weight: 700;
+	}
+</style>

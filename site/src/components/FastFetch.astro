@@ -1,0 +1,100 @@
+---
+import { site } from '../config/site';
+import { aboutRows } from '../config/about';
+
+interface Props {
+	notesCount: number;
+	projectsCount: number;
+}
+
+const { notesCount, projectsCount } = Astro.props;
+
+// Capped at 7 rows total (see about.ts) — aboutRows plus these two computed
+// ones is the whole list, not a starting point to add more to.
+const rows = [
+	...aboutRows,
+	{ key: 'Notes', value: String(notesCount) },
+	{ key: 'Projects', value: String(projectsCount) },
+].slice(0, 7);
+---
+
+<div class="fastfetch">
+	<div class="fastfetch__glyph" aria-hidden="true">
+		<span>{site.handle}</span>
+	</div>
+	<dl class="fastfetch__rows">
+		{
+			rows.map((row) => (
+				<div class="fastfetch__row">
+					<dt>{row.key}</dt>
+					<dd class={/^\d+$/.test(row.value) ? 'tabular-nums' : ''}>{row.value}</dd>
+				</div>
+			))
+		}
+	</dl>
+</div>
+
+<style>
+	.fastfetch {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: var(--s-7);
+		align-items: start;
+	}
+
+	@media (max-width: 45rem) {
+		.fastfetch {
+			grid-template-columns: 1fr;
+			gap: var(--s-4);
+		}
+	}
+
+	.fastfetch__glyph {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 12ch;
+		aspect-ratio: 1;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	@media (max-width: 45rem) {
+		.fastfetch__glyph {
+			width: 100%;
+			aspect-ratio: auto;
+			padding: var(--s-4) 0;
+		}
+	}
+
+	.fastfetch__rows {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		column-gap: var(--s-4);
+		row-gap: var(--s-1);
+		margin: 0;
+	}
+
+	.fastfetch__row {
+		display: contents;
+	}
+
+	.fastfetch__row dt {
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--accent);
+	}
+
+	.fastfetch__row dd {
+		margin: 0;
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		color: var(--fg);
+	}
+</style>
