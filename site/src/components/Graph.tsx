@@ -18,7 +18,7 @@ export type { GraphData, GraphEdge, GraphNode };
 // runtime; GraphNode itself stays a clean, JSON-serializable shape (it's
 // also what graph.json.ts emits), so this local, render-only alias is where
 // those optional extras live.
-type SimNode = GraphNode & { x?: number; y?: number; fx?: number; fy?: number };
+type SimNode = GraphNode & { x?: number; y?: number; vx?: number; vy?: number; fx?: number; fy?: number };
 type FG = ForceGraphCtor<SimNode, GraphEdge>;
 
 export interface GraphProps {
@@ -237,19 +237,14 @@ function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
 	}
 }
 
-/**
- * The default (non-timeline) layout: a fixed ~400-tick, seeded,
- * rectangle-collision simulation computed once up front (see
- * lib/graphLayout.ts) — not force-graph's own live, circle-approximated
- * one. Every node's fx/fy is pinned to the result, so force-graph does no
- * simulation of its own; nothing reshuffles on load or between builds.
- * Any label pairs still overlapping after settling are logged, not thrown.
- */
-function applyDefaultLayout(nodes: SimNode[], fontFamily: string): void {
-	const measureCtx = document.createElement('canvas').getContext('2d');
-	const byId = new Map(nodes.map((n) => [n.id, n]));
+type HalfExtent = { halfW: number; halfH: number };
 
-	const boxes: LayoutBox[] = nodes.map((n) => {
+/** Each node's drawn half-width/half-height — used both to seed the initial
+ *  layout and to drive the live rectangle-collision force below. */
+function measureHalfExtents(nodes: SimNode[], fontFamily: string): Map<string, HalfExtent> {
+	const measureCtx = document.createElement('canvas').getContext('2d');
+	const extents = new Map<string, HalfExtent>();
+	for (const n of nodes) {
 		let halfW: number;
 		let halfH: number;
 		if (n.kind === 'topic') {
@@ -265,32 +260,105 @@ function applyDefaultLayout(nodes: SimNode[], fontFamily: string): void {
 			halfW = nodeRadius(n) + 6;
 			halfH = halfW;
 		}
+		extents.set(n.id, { halfW, halfH });
+	}
+	return extents;
+}
 
+/**
+ * Seeds each node's *starting* x/y (not fixed — d3-force is free to move
+ * them from here) from the deterministic rectangle-collision layout in
+ * lib/graphLayout.ts, so the live simulation below starts from an
+ * already-reasonable, non-overlapping arrangement instead of a random
+ * scatter. The live simulation (charge + link + the rectCollide force
+ * registered at construction time) is what actually keeps things apart
+ * as it settles and as nodes get dragged — this is just a better starting
+ * point, not a permanent pin. Any label pairs still overlapping in this
+ * *seed* are logged, not thrown (the live rectCollide force cleans up any
+ * that remain once the simulation runs).
+ */
+function seedInitialLayout(nodes: SimNode[], extents: Map<string, HalfExtent>): void {
+	const byId = new Map(nodes.map((n) => [n.id, n]));
+
+	const boxes: LayoutBox[] = nodes.map((n) => {
+		const extent = extents.get(n.id)!;
 		let pullTarget: string | undefined;
 		if (n.kind === 'topic') {
 			pullTarget = n.parent;
 		} else if (n.topics[0] && byId.has(n.topics[0])) {
 			pullTarget = n.topics[0];
 		}
-
-		return { id: n.id, halfW, halfH, pullTarget };
+		return { id: n.id, halfW: extent.halfW, halfH: extent.halfH, pullTarget };
 	});
 
 	const { positions, remainingOverlaps } = layoutGraph(boxes);
 	for (const n of nodes) {
 		const p = positions.get(n.id);
 		if (!p) continue;
-		n.fx = p.x;
-		n.fy = p.y;
+		n.x = p.x;
+		n.y = p.y;
+		n.fx = undefined;
+		n.fy = undefined;
 	}
 
 	if (remainingOverlaps.length > 0) {
 		// eslint-disable-next-line no-console
 		console.warn(
-			`[graph layout] ${remainingOverlaps.length} label pair(s) still overlap after settling:`,
+			`[graph layout] ${remainingOverlaps.length} label pair(s) still overlap in the seed layout (the live simulation should resolve these):`,
 			remainingOverlaps,
 		);
 	}
+}
+
+/**
+ * A d3-force-compatible custom force: every tick, nudges apart any pair of
+ * nodes whose *drawn* extents (from `extentsRef`, kept live so it reflects
+ * font-size/theme changes) overlap by more than 6px of padding — real
+ * rectangle collision, not d3's circle-based forceCollide, which is what
+ * let labels overlap in the first place. Runs continuously alongside the
+ * normal charge/link forces, so it keeps working while the simulation is
+ * live and while a node is being dragged, not just once at layout time.
+ */
+function rectCollideForce(extentsRef: { current: Map<string, HalfExtent> }) {
+	const PADDING = 6;
+	let nodes: SimNode[] = [];
+	function force(alpha: number) {
+		const extents = extentsRef.current;
+		for (let i = 0; i < nodes.length; i++) {
+			const a = nodes[i];
+			const ea = extents.get(a.id);
+			if (!ea) continue;
+			const ax = a.x ?? 0;
+			const ay = a.y ?? 0;
+			for (let j = i + 1; j < nodes.length; j++) {
+				const b = nodes[j];
+				const eb = extents.get(b.id);
+				if (!eb) continue;
+				const bx = b.x ?? 0;
+				const by = b.y ?? 0;
+				const dx = bx - ax;
+				const dy = by - ay;
+				const overlapX = ea.halfW + eb.halfW + PADDING * 2 - Math.abs(dx);
+				const overlapY = ea.halfH + eb.halfH + PADDING * 2 - Math.abs(dy);
+				if (overlapX <= 0 || overlapY <= 0) continue;
+
+				const strength = alpha * 0.6;
+				if (overlapX < overlapY) {
+					const push = overlapX * strength * (dx >= 0 ? 1 : -1);
+					if (a.fx === undefined) a.vx = (a.vx ?? 0) - push;
+					if (b.fx === undefined) b.vx = (b.vx ?? 0) + push;
+				} else {
+					const push = overlapY * strength * (dy >= 0 ? 1 : -1);
+					if (a.fy === undefined) a.vy = (a.vy ?? 0) - push;
+					if (b.fy === undefined) b.vy = (b.vy ?? 0) + push;
+				}
+			}
+		}
+	}
+	force.initialize = (ns: SimNode[]) => {
+		nodes = ns;
+	};
+	return force;
 }
 
 /**
@@ -408,6 +476,7 @@ export default function Graph({
 		fontFamily: 'ui-monospace, monospace',
 	});
 	const hueMapRef = useRef<Map<string, number>>(new Map());
+	const extentsRef = useRef<Map<string, HalfExtent>>(new Map());
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
 	const hoveredTopicRef = useRef<string | null>(null);
@@ -448,15 +517,18 @@ export default function Graph({
 	function relayout(fg: FG | null) {
 		if (!fg) return;
 		hueMapRef.current = computeHueMap(graphDataRef.current.nodes, colorsRef.current.accent);
+		extentsRef.current = measureHalfExtents(graphDataRef.current.nodes, colorsRef.current.fontFamily);
 		if (timelineRef.current) {
 			pinNodesByDate(graphDataRef.current.nodes, true);
-			fg.cooldownTime(prefersReducedMotion() ? 0 : 1500);
-			fg.d3ReheatSimulation();
 		} else {
-			applyDefaultLayout(graphDataRef.current.nodes, colorsRef.current.fontFamily);
-			fg.cooldownTicks(0);
-			fg.d3ReheatSimulation();
+			seedInitialLayout(graphDataRef.current.nodes, extentsRef.current);
 		}
+		// Both modes run a real, live simulation now (charge + link, plus the
+		// always-registered rectCollide force) — an open, organic layout that
+		// keeps dragging one node pulling its connected neighbors along,
+		// rather than every position being permanently pinned.
+		fg.cooldownTime(prefersReducedMotion() ? 0 : 1500);
+		fg.d3ReheatSimulation();
 		zoomedOnceRef.current = false;
 	}
 
@@ -628,20 +700,22 @@ export default function Graph({
 					fitToContent(fg, graphDataRef.current.nodes, 400);
 				})
 				.enableNodeDrag(true)
-				// Default layout is fully precomputed and pinned (see
-				// applyDefaultLayout) — cooldownTicks(0) below means force-graph
-				// runs no simulation of its own on load. Timeline mode
-				// re-enables a real cooldown dynamically (see relayout()) since
-				// it still needs a live simulation for y. Reduced motion skips
-				// whatever settling animation is active either way.
-				.cooldownTicks(0);
+				// A real, live simulation (not a one-shot layout) — this is what
+				// makes dragging one node pull its connected neighbors along, and
+				// what gives the graph its open, organic feel instead of a rigid
+				// precomputed grid. cooldownTime is set dynamically in relayout()
+				// (0 under prefers-reduced-motion).
+				.cooldownTime(1500);
 
 			// More breathing room than the library defaults: stronger repulsion
-			// and longer link distance so clusters separate instead of clumping
-			// (only matters in timeline mode now — the default layout doesn't
-			// use force-graph's own simulation at all).
+			// and longer link distance so clusters separate instead of clumping.
 			fg.d3Force('charge')?.strength(-160);
 			fg.d3Force('link')?.distance(70);
+			// Real rectangle collision (labels' actual drawn extents), not
+			// d3-force's default circle-based forceCollide — registered once,
+			// reads live extents/positions off the refs every tick, so it keeps
+			// working through settling, hover, and drag alike.
+			fg.d3Force('rectCollide', rectCollideForce(extentsRef));
 
 			fgRef.current = fg;
 			fg.graphData({ nodes: graphDataRef.current.nodes, links: graphDataRef.current.edges });
