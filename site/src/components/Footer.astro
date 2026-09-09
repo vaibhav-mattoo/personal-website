@@ -8,8 +8,7 @@ const buildDate = new Date().toISOString().slice(0, 10);
 
 <footer class="footer">
 	<nav class="footer__links" aria-label="Site links">
-		<!-- RSS lands in Phase 8 alongside the actual /rss.xml route — no
-		     point linking a feed that doesn't exist yet. -->
+		<a href="/rss.xml">RSS</a>
 		<a href={`https://github.com/${githubUsername}`} target="_blank" rel="noopener">GitHub</a>
 		<a href="mailto:vaibhavmattoo1@gmail.com">Email</a>
 		<a href="/colophon/">Colophon</a>

@@ -16,9 +16,10 @@ const tree = await getTopicTree();
 const roots = tree.roots.filter((node) => !node.hidden);
 
 const graphData = await getGraphData();
+const description = `${entries.length} note${entries.length === 1 ? '' : 's'} across ${roots.length} topic${roots.length === 1 ? '' : 's'}, searchable and browsable as a graph.`;
 ---
 
-<Base title="Notes">
+<Base title="Notes" description={description}>
 	<header class="head">
 		<h1>Notes</h1>
 		<p>

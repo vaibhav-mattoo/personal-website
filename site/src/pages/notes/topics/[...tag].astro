@@ -45,7 +45,7 @@ if (!node.synthesized) {
 }
 ---
 
-<Base title={node.title}>
+<Base title={node.title} description={node.summary ?? `Notes tagged ${node.title}.`}>
 	<header class="head">
 		<nav class="crumbs" aria-label="Breadcrumb">
 			<a href="/notes/">Topics</a>

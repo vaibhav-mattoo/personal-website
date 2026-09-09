@@ -12,12 +12,18 @@ import remarkWikilink from './src/plugins/remark-wikilink.mjs';
 import { runLinkReport } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
+	// Required for @astrojs/sitemap and rss.xml.ts to emit absolute URLs.
+	// Matches the Dockerfile's PUBLIC_SITE_NAME build arg (defaults to the
+	// production domain when unset, e.g. for local builds).
+	site: `https://${process.env.PUBLIC_SITE_NAME ?? 'vmattoo.dev'}`,
 	vite: { envDir: '..' },
 	integrations: [
 		react(),
+		sitemap(),
 		expressiveCode({
 			themes: ['github-light', 'github-dark'],
 			themeCssSelector: (theme) => `[data-mode="${theme.type}"]`,

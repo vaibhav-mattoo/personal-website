@@ -43,7 +43,7 @@ const minutes = Math.max(1, Math.ceil(stats.minutes));
 // Toc itself is kept — it only links to this page's own headings.
 ---
 
-<Base title={note.data.title} docs>
+<Base title={note.data.title} description={note.data.summary} docs>
 	<Fragment slot="head">
 		<meta name="robots" content="noindex, nofollow" />
 	</Fragment>
