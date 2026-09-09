@@ -377,7 +377,7 @@ function computeRadialTargets(nodes: GraphNode[]): Map<string, RadialTarget> {
 	const targets = new Map<string, RadialTarget>();
 	if (topLevel.length === 0) return targets;
 	// Scales with count so more topics don't get any more cramped than fewer.
-	const radius = Math.max(260, topLevel.length * 55);
+	const radius = Math.max(340, topLevel.length * 90);
 	topLevel.forEach((id, i) => {
 		const angle = (2 * Math.PI * i) / topLevel.length - Math.PI / 2;
 		targets.set(id, { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
@@ -395,7 +395,7 @@ function computeRadialTargets(nodes: GraphNode[]): Map<string, RadialTarget> {
  * what lets them cluster naturally around their own parent topic.
  */
 function radialSpreadForce(targetsRef: { current: Map<string, RadialTarget> }) {
-	const STRENGTH = 0.12;
+	const STRENGTH = 0.24;
 	let nodes: SimNode[] = [];
 	function force(alpha: number) {
 		const targets = targetsRef.current;
