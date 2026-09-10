@@ -97,6 +97,13 @@ const localGraphData = neighborhood(
 				<h1>{note.data.title}</h1>
 				{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
 				<NoteMeta date={note.data.date} minutes={minutes} words={words} />
+				{
+					note.data.kind === 'document' && note.data.url && (
+						<a class="note-head__doc-link" href={note.data.url} target="_blank" rel="noopener">
+							Open document ↗
+						</a>
+					)
+				}
 			</header>
 
 			<div class="prose docs__prose">
@@ -140,6 +147,29 @@ const localGraphData = neighborhood(
 		color: var(--muted);
 		font-size: 1.05rem;
 		line-height: 1.6;
+	}
+
+	.note-head__doc-link {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin-top: 0.75rem;
+		padding: 0.5rem 1rem;
+		border: 1px solid transparent;
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--accent);
+		font-family: var(--font-display);
+		font-weight: 600;
+		text-decoration: none;
+		transition:
+			border-color var(--dur-fast) var(--ease),
+			background-color var(--dur-fast) var(--ease);
+	}
+
+	.note-head__doc-link:hover {
+		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 
 	.note__back {

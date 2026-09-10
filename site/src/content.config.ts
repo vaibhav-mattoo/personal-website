@@ -29,7 +29,9 @@ const notes = defineCollection({
 			// dead. Does not affect listing visibility: a note with `share` set
 			// is already excluded from those regardless of expiry.
 			shareUntil: z.coerce.date().optional(),
-			kind: z.enum(['note', 'concept', 'experiment', 'review', 'idea', 'paper']).default('note'),
+			kind: z
+				.enum(['note', 'concept', 'experiment', 'review', 'idea', 'paper', 'document'])
+				.default('note'),
 			relations: z
 				.array(
 					z.object({
@@ -40,12 +42,15 @@ const notes = defineCollection({
 				.default([]),
 			updated: z.coerce.date().optional(),
 
-			// Bibliographic fields — only meaningful for kind: 'paper' (enforced
-			// below), but not namespaced under a nested object so a paper note's
+			// Bibliographic fields — mostly for kind: 'paper' (enforced below),
+			// but not namespaced under a nested object so a paper note's
 			// frontmatter reads like plain metadata, not a sub-schema. No
 			// separate `papers` collection: a paper is just a note with these
 			// fields filled in, filed under content/notes/lit/ by convention
-			// only — nothing in the code depends on that path.
+			// only — nothing in the code depends on that path. `url` is also
+			// used by kind: 'document' (also filed under lit/ by convention,
+			// so it's citable the same way a paper is) — required there too,
+			// enforced below, since a document's entire point is the link.
 			rating: z.number().min(1).max(5).optional(),
 			added: z.coerce.date().optional(),
 			authors: z.array(z.string()).default([]),
@@ -64,6 +69,13 @@ const notes = defineCollection({
 			suggestedBy: z.string().optional(),
 		})
 		.superRefine((data, ctx) => {
+			if (data.kind === 'document' && !data.url) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['url'],
+					message: "kind: 'document' requires a url",
+				});
+			}
 			if (data.kind !== 'paper') return;
 			if (data.authors.length === 0) {
 				ctx.addIssue({

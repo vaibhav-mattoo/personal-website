@@ -82,7 +82,11 @@ function edgeDash(type: string): number[] | null {
 }
 
 function nodeRadius(node: GraphNode): number {
-	return Math.min(4 + Math.sqrt(node.degree) * 2.2, 16);
+	const base = Math.min(4 + Math.sqrt(node.degree) * 2.2, 16);
+	// Documents (kind: 'document' — an external resource like a book/PDF,
+	// not a written note) get a visibly bigger circle so they read as a
+	// different category of thing at a glance, not just another note.
+	return node.kind === 'document' ? base * 1.6 : base;
 }
 
 /**

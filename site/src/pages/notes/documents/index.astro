@@ -1,7 +1,16 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import TerminalPrompt from '../../../components/TerminalPrompt.astro';
-import { publicDocuments } from '../../../config/public-documents';
+import { getPublicVault } from '../../../lib/vault';
+
+// Documents are just kind: 'document' notes (usually filed under
+// notes/lit/, same convention as papers) — this page is a thin filtered
+// view over the vault, not a separate data source. See CLAUDE.md/
+// content.config.ts: adding one is "add a note", not "edit a config file".
+const { entries } = await getPublicVault();
+const documents = entries
+	.filter((e) => e.kind === 'document')
+	.sort((a, b) => b.date.valueOf() - a.date.valueOf());
 ---
 
 <Base title="Documents" description="Documents I've decided to share, with the source linked directly.">
@@ -13,15 +22,17 @@ import { publicDocuments } from '../../../config/public-documents';
 	<TerminalPrompt command="ls documents/" />
 
 	{
-		publicDocuments.length === 0 ? (
+		documents.length === 0 ? (
 			<p class="empty">No documents yet.</p>
 		) : (
 			<nav class="tiles">
-				{publicDocuments.map((d) => (
+				{documents.map((d) => (
 					<a class="tile" href={d.url} target="_blank" rel="noopener">
 						<span class="tile__title">{d.title} ↗</span>
-						{d.date && <span class="tile__meta">{d.date}</span>}
-						{d.description && <span class="tile__desc">{d.description}</span>}
+						<time class="tile__meta" datetime={d.date.toISOString()}>
+							{d.date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
+						</time>
+						{d.summary && <span class="tile__desc">{d.summary}</span>}
 					</a>
 				))}
 			</nav>
@@ -58,7 +69,7 @@ import { publicDocuments } from '../../../config/public-documents';
 	.tiles {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-		gap: 0.5rem;
+		gap: var(--s-3);
 		margin: 0.25rem 0 1rem;
 	}
 
@@ -67,14 +78,15 @@ import { publicDocuments } from '../../../config/public-documents';
 		flex-direction: column;
 		gap: 0.25rem;
 		padding: 0.7rem 0.85rem;
-		border: 1px solid var(--border);
+		border: 1px solid transparent;
 		border-radius: var(--radius);
+		background: var(--surface);
 		color: var(--fg);
 		text-decoration: none;
 		transition:
-			border-color 0.15s,
-			color 0.15s,
-			background-color 0.15s;
+			border-color var(--dur-fast) var(--ease),
+			color var(--dur-fast) var(--ease),
+			background-color var(--dur-fast) var(--ease);
 	}
 
 	.tile:hover {
