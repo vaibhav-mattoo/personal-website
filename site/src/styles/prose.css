@@ -306,10 +306,36 @@
 
 /* Foldable callouts render as <details>/<summary> instead of <div>/<p> —
    the summary needs the same title layout plus its own interaction
-   affordances (a plain <p> never gets these). */
+   affordances (a plain <p> never gets these). The native disclosure
+   triangle is suppressed in favor of a hand-drawn chevron (::before) so
+   its open/closed rotation looks identical across browsers — Firefox's
+   native marker already rotates, but Chrome/Safari's does not. */
 .prose details.callout > summary.callout-title {
 	cursor: pointer;
-	list-style: revert;
+	list-style: none;
+}
+
+.prose details.callout > summary.callout-title::-webkit-details-marker {
+	display: none;
+}
+
+.prose details.callout > summary.callout-title::before {
+	content: '';
+	display: inline-block;
+	width: 0.4em;
+	height: 0.4em;
+	margin-right: 0.5em;
+	border-style: solid;
+	border-color: currentColor;
+	border-width: 0 0.14em 0.14em 0;
+	opacity: 0.6;
+	transform: rotate(-45deg);
+	transition: transform 0.15s ease;
+	vertical-align: middle;
+}
+
+.prose details.callout[open] > summary.callout-title::before {
+	transform: rotate(45deg);
 }
 
 .prose details.callout > summary.callout-title:focus-visible {

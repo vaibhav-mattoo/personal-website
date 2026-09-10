@@ -31,6 +31,7 @@
 export const CALLOUT_TYPES = {
 	// Numbered "assertion" environments — share one counter (§3).
 	DEFINITION: { label: 'Definition', aliases: ['DEF'], numbered: true, family: 'assertion', defaultFold: 'static' },
+	FORMULA: { label: 'Formula', aliases: ['FORM'], numbered: true, family: 'assertion', defaultFold: 'static' },
 	THEOREM: { label: 'Theorem', aliases: ['THM'], numbered: true, family: 'assertion', defaultFold: 'static' },
 	LEMMA: { label: 'Lemma', aliases: [], numbered: true, family: 'assertion', defaultFold: 'static' },
 	PROPOSITION: { label: 'Proposition', aliases: ['PROP'], numbered: true, family: 'assertion', defaultFold: 'static' },
