@@ -17,6 +17,7 @@
     "links:strict": "npm run links:strict -w site",
     "leak-check": "npm run leak-check -w site",
     "new-share": "npm run new-share -w site",
+    "migrate-callouts": "npm run migrate-callouts -w site",
     "test": "node --test site/test",
     "up": "docker compose up --build"
   }

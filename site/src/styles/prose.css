@@ -173,15 +173,22 @@
 	margin-bottom: 0;
 }
 
-/* GitHub-style alert blocks — `> [!NOTE]` etc, rewritten to <div
-   class="callout callout-note"> by remark-callout.mjs. Not italic (unlike
-   the plain blockquote above): these read as structured admonitions, not
-   quoted speech. */
+/* Note-taking environments (theorem/definition/proof/...) plus GitHub's
+   five alert types for back-compat — see remark-callout.mjs's
+   CALLOUT_TYPES for the full registry. Three visual registers, not
+   fifteen: assertion (definition/theorem/lemma/proposition/corollary —
+   one accent, this is the claim), support (proof/derivation/solution/
+   example/exercise/algorithm — muted, clearly subordinate), aside
+   (intuition/remark/convention/note/warning/tip/important/caution — the
+   original per-type alert palette). Statement text stays upright at every
+   level; the register is carried by rule color + tint only, since
+   assertion bodies are long math-heavy blocks that need to stay
+   comfortable to read. */
 .prose .callout {
 	margin: 1.25rem 0;
 	padding: 0.75rem 1rem;
-	border-left: 3px solid var(--callout-note);
-	background: color-mix(in srgb, var(--callout-note) 10%, var(--bg));
+	border-left: 3px solid var(--muted);
+	background: var(--surface);
 	border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 	color: var(--fg);
 }
@@ -194,10 +201,74 @@
 	margin-bottom: 0;
 }
 
+/* Nested callout (a proof inside a theorem) — capped margin so two levels
+   of padding+border don't read as an ever-deepening staircase. */
+.prose .callout .callout {
+	margin: 0.75rem 0;
+}
+
 .prose .callout-title {
+	display: flex;
+	align-items: baseline;
+	gap: 0.4em;
 	margin: 0 0 0.35rem;
 	font-family: var(--font-display);
+}
+
+.prose .callout-label {
 	font-weight: 700;
+}
+
+.prose .callout-name {
+	font-weight: 400;
+	color: var(--fg);
+}
+
+.prose .callout-name::before {
+	content: '(';
+}
+
+.prose .callout-name::after {
+	content: ')';
+}
+
+/* Assertion register: definition/theorem/lemma/proposition/corollary —
+   one shared accent, tied to the site's own theme color. */
+.prose .callout-family-assertion {
+	border-left-color: var(--accent);
+	background: var(--accent-soft);
+}
+.prose .callout-family-assertion .callout-label {
+	color: var(--accent);
+}
+
+/* Support register: proof/derivation/solution/example/exercise/algorithm
+   — muted and low-contrast, clearly subordinate to an assertion. */
+.prose .callout-family-support {
+	border-left-color: var(--border-strong);
+	background: var(--surface);
+}
+.prose .callout-family-support .callout-label {
+	color: var(--muted);
+}
+
+/* Aside register defaults to the same muted treatment as support
+   (intuition/remark/convention have no established color of their own);
+   note/warning/tip/important/caution below override with their existing
+   distinct hues — GitHub's alert palette, kept as-is for back-compat. */
+.prose .callout-family-aside {
+	border-left-color: var(--muted);
+	background: var(--surface);
+}
+.prose .callout-family-aside .callout-label {
+	color: var(--muted);
+}
+
+.prose .callout-note {
+	border-left-color: var(--callout-note);
+	background: color-mix(in srgb, var(--callout-note) 10%, var(--bg));
+}
+.prose .callout-note .callout-label {
 	color: var(--callout-note);
 }
 
@@ -205,7 +276,7 @@
 	border-left-color: var(--callout-tip);
 	background: color-mix(in srgb, var(--callout-tip) 10%, var(--bg));
 }
-.prose .callout-tip .callout-title {
+.prose .callout-tip .callout-label {
 	color: var(--callout-tip);
 }
 
@@ -213,7 +284,7 @@
 	border-left-color: var(--callout-important);
 	background: color-mix(in srgb, var(--callout-important) 10%, var(--bg));
 }
-.prose .callout-important .callout-title {
+.prose .callout-important .callout-label {
 	color: var(--callout-important);
 }
 
@@ -221,7 +292,7 @@
 	border-left-color: var(--callout-warning);
 	background: color-mix(in srgb, var(--callout-warning) 10%, var(--bg));
 }
-.prose .callout-warning .callout-title {
+.prose .callout-warning .callout-label {
 	color: var(--callout-warning);
 }
 
@@ -229,8 +300,40 @@
 	border-left-color: var(--callout-caution);
 	background: color-mix(in srgb, var(--callout-caution) 10%, var(--bg));
 }
-.prose .callout-caution .callout-title {
+.prose .callout-caution .callout-label {
 	color: var(--callout-caution);
+}
+
+/* Foldable callouts render as <details>/<summary> instead of <div>/<p> —
+   the summary needs the same title layout plus its own interaction
+   affordances (a plain <p> never gets these). */
+.prose details.callout > summary.callout-title {
+	cursor: pointer;
+	list-style: revert;
+}
+
+.prose details.callout > summary.callout-title:focus-visible {
+	outline: var(--focus-ring);
+	outline-offset: var(--focus-ring-offset);
+}
+
+.prose .callout-qed {
+	float: right;
+	margin: 0;
+	font-family: var(--font-display);
+	font-weight: 700;
+}
+
+/* Proofs/derivations/solutions collapsed on screen still print in full —
+   a <details> without [open] hides its non-summary children natively;
+   this overrides that specifically for print. */
+@media print {
+	.prose details.callout {
+		display: block;
+	}
+	.prose details.callout > *:not(summary) {
+		display: block;
+	}
 }
 
 .prose figure:has(img) {
