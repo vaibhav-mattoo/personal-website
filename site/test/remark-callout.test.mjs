@@ -34,7 +34,7 @@ test('title on the same line as the marker becomes real title children, not a fl
 	const [node] = run(tree).children;
 	const title = node.children[0];
 
-	assert.equal(labelText(title), 'Theorem 1');
+	assert.equal(labelText(title), 'Theorem');
 	assert.equal(nameChildren(title).length, 1);
 	assert.equal(nameChildren(title)[0].value, 'Chain rule for $H$');
 	// Body: nothing left after the title on this line, and none after it.
@@ -99,7 +99,7 @@ test('alias resolution: short forms resolve to the canonical type', () => {
 
 	assert.equal(byAlias.data.hProperties['data-callout'], 'theorem');
 	assert.equal(byAlias.data.hProperties['data-callout'], byCanonical.data.hProperties['data-callout']);
-	assert.equal(labelText(byAlias.children[0]), 'Theorem 1');
+	assert.equal(labelText(byAlias.children[0]), 'Theorem');
 });
 
 test('every alias in the registry resolves to its own canonical entry', () => {
@@ -111,43 +111,26 @@ test('every alias in the registry resolves to its own canonical entry', () => {
 	}
 });
 
-test('numbering: one counter shared across every numbered type, in document order', () => {
+test('no callout ever gets numbered — every instance of a type shows the same plain label', () => {
 	const tree = {
 		type: 'root',
 		children: [
 			blockquote(['[!DEFINITION] x']),
 			blockquote(['[!THEOREM] x']),
-			blockquote(['[!LEMMA] x']),
-			blockquote(['[!EXAMPLE] x']), // numbered, but family: support — still shares the counter
+			blockquote(['[!THEOREM] y']),
+			blockquote(['[!EXAMPLE] x']),
 		],
 	};
-	const [def, thm, lem, ex] = run(tree).children;
+	const [def, thm1, thm2, ex] = run(tree).children;
 
-	assert.equal(labelText(def.children[0]), 'Definition 1');
-	assert.equal(labelText(thm.children[0]), 'Theorem 2');
-	assert.equal(labelText(lem.children[0]), 'Lemma 3');
-	assert.equal(labelText(ex.children[0]), 'Example 4');
+	assert.equal(labelText(def.children[0]), 'Definition');
+	assert.equal(labelText(thm1.children[0]), 'Theorem');
+	assert.equal(labelText(thm2.children[0]), 'Theorem');
+	assert.equal(labelText(ex.children[0]), 'Example');
 
-	assert.equal(def.data.hProperties.id, 'definition-1');
-	assert.equal(thm.data.hProperties.id, 'theorem-2');
-});
-
-test('counter resets between documents (fresh transformer call = fresh closure)', () => {
-	const first = run({ type: 'root', children: [blockquote(['[!THEOREM] x']), blockquote(['[!THEOREM] x'])] });
-	assert.equal(labelText(first.children[0].children[0]), 'Theorem 1');
-	assert.equal(labelText(first.children[1].children[0]), 'Theorem 2');
-
-	// A brand new tree/transformer call — as a new file would get in a
-	// real build — must start back at 1, not continue from 2.
-	const second = run({ type: 'root', children: [blockquote(['[!THEOREM] x'])] });
-	assert.equal(labelText(second.children[0].children[0]), 'Theorem 1');
-});
-
-test('numbering: false suppresses numbers and ids but still resolves the type', () => {
-	const node = run({ type: 'root', children: [blockquote(['[!THEOREM] x'])] }, { numbering: false }).children[0];
-	assert.equal(labelText(node.children[0]), 'Theorem');
-	assert.equal(node.data.hProperties.id, undefined);
-	assert.ok(!node.data.hProperties.className.includes('is-numbered'));
+	assert.equal(def.data.hProperties.id, undefined);
+	assert.equal(thm1.data.hProperties.id, undefined);
+	assert.ok(!thm1.data.hProperties.className.includes('is-numbered'));
 });
 
 test('qed: PROOF gets a trailing ∎ paragraph by default, other types never do', () => {

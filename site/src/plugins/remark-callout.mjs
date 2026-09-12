@@ -19,45 +19,44 @@
 
 /**
  * The single source of truth for every environment: canonical marker name
- * (the object key), its aliases, display label, whether it participates
- * in the shared numbering counter, which of the three visual registers it
- * belongs to (assertion/support/aside — see prose.css), and its default
- * fold behavior ('static' = always a plain, non-collapsible block;
- * 'closed'/'open' = a <details> that starts collapsed/expanded). A `-`/`+`
- * in the source always overrides this default, for every type — a
+ * (the object key), its aliases, display label, which of the three visual
+ * registers it belongs to (assertion/support/aside — see prose.css), and
+ * its default fold behavior ('static' = always a plain, non-collapsible
+ * block; 'closed'/'open' = a <details> that starts collapsed/expanded). A
+ * `-`/`+` in the source always overrides this default, for every type — a
  * default of 'static' does not mean "cannot be foldable", just "isn't by
  * default".
  */
 export const CALLOUT_TYPES = {
-	// Numbered "assertion" environments — share one counter (§3).
-	DEFINITION: { label: 'Definition', aliases: ['DEF'], numbered: true, family: 'assertion', defaultFold: 'static' },
-	FORMULA: { label: 'Formula', aliases: ['FORM'], numbered: true, family: 'assertion', defaultFold: 'static' },
-	THEOREM: { label: 'Theorem', aliases: ['THM'], numbered: true, family: 'assertion', defaultFold: 'static' },
-	LEMMA: { label: 'Lemma', aliases: [], numbered: true, family: 'assertion', defaultFold: 'static' },
-	PROPOSITION: { label: 'Proposition', aliases: ['PROP'], numbered: true, family: 'assertion', defaultFold: 'static' },
-	COROLLARY: { label: 'Corollary', aliases: ['COR'], numbered: true, family: 'assertion', defaultFold: 'static' },
-	// Numbered, but visually "support" — worked examples/exercises read as
-	// subordinate material, not claims, even though they're numbered too.
-	EXAMPLE: { label: 'Example', aliases: ['EG'], numbered: true, family: 'support', defaultFold: 'static' },
-	EXERCISE: { label: 'Exercise', aliases: [], numbered: true, family: 'support', defaultFold: 'static' },
+	// "assertion" environments — claims.
+	DEFINITION: { label: 'Definition', aliases: ['DEF'], family: 'assertion', defaultFold: 'static' },
+	FORMULA: { label: 'Formula', aliases: ['FORM'], family: 'assertion', defaultFold: 'static' },
+	THEOREM: { label: 'Theorem', aliases: ['THM'], family: 'assertion', defaultFold: 'static' },
+	LEMMA: { label: 'Lemma', aliases: [], family: 'assertion', defaultFold: 'static' },
+	PROPOSITION: { label: 'Proposition', aliases: ['PROP'], family: 'assertion', defaultFold: 'static' },
+	COROLLARY: { label: 'Corollary', aliases: ['COR'], family: 'assertion', defaultFold: 'static' },
+	// Visually "support" — worked examples/exercises read as subordinate
+	// material, not claims.
+	EXAMPLE: { label: 'Example', aliases: ['EG'], family: 'support', defaultFold: 'static' },
+	EXERCISE: { label: 'Exercise', aliases: [], family: 'support', defaultFold: 'static' },
 
-	// Unnumbered "support" environments.
-	PROOF: { label: 'Proof', aliases: [], numbered: false, family: 'support', defaultFold: 'closed' },
-	DERIVATION: { label: 'Derivation', aliases: [], numbered: false, family: 'support', defaultFold: 'closed' },
-	SOLUTION: { label: 'Solution', aliases: [], numbered: false, family: 'support', defaultFold: 'closed' },
-	ALGORITHM: { label: 'Algorithm', aliases: [], numbered: false, family: 'support', defaultFold: 'static' },
+	// "support" environments.
+	PROOF: { label: 'Proof', aliases: [], family: 'support', defaultFold: 'closed' },
+	DERIVATION: { label: 'Derivation', aliases: [], family: 'support', defaultFold: 'closed' },
+	SOLUTION: { label: 'Solution', aliases: [], family: 'support', defaultFold: 'closed' },
+	ALGORITHM: { label: 'Algorithm', aliases: [], family: 'support', defaultFold: 'static' },
 
-	// Unnumbered "aside" environments — includes GitHub's five alert types
-	// (NOTE/WARNING keep their original meaning; TIP/IMPORTANT/CAUTION are
-	// pure back-compat for older notes, not remapped onto anything else).
-	INTUITION: { label: 'Intuition', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
-	REMARK: { label: 'Remark', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
-	CONVENTION: { label: 'Convention', aliases: ['NOTATION'], numbered: false, family: 'aside', defaultFold: 'static' },
-	NOTE: { label: 'Note', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
-	WARNING: { label: 'Warning', aliases: ['PITFALL'], numbered: false, family: 'aside', defaultFold: 'static' },
-	TIP: { label: 'Tip', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
-	IMPORTANT: { label: 'Important', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
-	CAUTION: { label: 'Caution', aliases: [], numbered: false, family: 'aside', defaultFold: 'static' },
+	// "aside" environments — includes GitHub's five alert types (NOTE/
+	// WARNING keep their original meaning; TIP/IMPORTANT/CAUTION are pure
+	// back-compat for older notes, not remapped onto anything else).
+	INTUITION: { label: 'Intuition', aliases: [], family: 'aside', defaultFold: 'static' },
+	REMARK: { label: 'Remark', aliases: [], family: 'aside', defaultFold: 'static' },
+	CONVENTION: { label: 'Convention', aliases: ['NOTATION'], family: 'aside', defaultFold: 'static' },
+	NOTE: { label: 'Note', aliases: [], family: 'aside', defaultFold: 'static' },
+	WARNING: { label: 'Warning', aliases: ['PITFALL'], family: 'aside', defaultFold: 'static' },
+	TIP: { label: 'Tip', aliases: [], family: 'aside', defaultFold: 'static' },
+	IMPORTANT: { label: 'Important', aliases: [], family: 'aside', defaultFold: 'static' },
+	CAUTION: { label: 'Caution', aliases: [], family: 'aside', defaultFold: 'static' },
 };
 
 function buildAliasLookup() {
@@ -143,9 +142,9 @@ function splitTitleAndBody(children, markerLength) {
 }
 
 /** A <span class="callout-label"> containing plain text (never inline
- *  markdown — it's always either a fixed word like "Proof" or a
- *  generated "Theorem 2"), via hChildren so it renders exactly as given
- *  regardless of mdast-to-hast's normal per-type conversion. */
+ *  markdown — it's always a fixed word like "Proof" or "Theorem"), via
+ *  hChildren so it renders exactly as given regardless of mdast-to-hast's
+ *  normal per-type conversion. */
 function labelSpan(text) {
 	return {
 		type: 'callout-label',
@@ -173,11 +172,11 @@ function qedParagraph() {
 	};
 }
 
-function transformCallouts(node, counter, options) {
+function transformCallouts(node, options) {
 	if (!node || !Array.isArray(node.children)) return;
 
 	for (const child of node.children) {
-		transformCallouts(child, counter, options);
+		transformCallouts(child, options);
 	}
 
 	if (node.type !== 'blockquote') return;
@@ -199,19 +198,11 @@ function transformCallouts(node, counter, options) {
 		bodyChildren = [{ ...firstParagraph, children: bodyFirstParagraphChildren }, ...node.children.slice(1)];
 	}
 
-	let labelText = def.label;
-	let id;
-	if (def.numbered && options.numbering) {
-		counter.value += 1;
-		labelText = `${def.label} ${counter.value}`;
-		id = `${canonical.toLowerCase()}-${counter.value}`;
-	}
-
 	const realTitleChildren = titleChildren.filter((c) => !isWhitespaceOnly(c));
 	const titleNode = {
 		type: 'paragraph',
 		data: { hName: fold === 'static' ? 'p' : 'summary', hProperties: { className: ['callout-title'] } },
-		children: realTitleChildren.length > 0 ? [labelSpan(labelText), nameSpan(realTitleChildren)] : [labelSpan(labelText)],
+		children: realTitleChildren.length > 0 ? [labelSpan(def.label), nameSpan(realTitleChildren)] : [labelSpan(def.label)],
 	};
 
 	if (canonical === 'PROOF' && options.qed) {
@@ -221,22 +212,17 @@ function transformCallouts(node, counter, options) {
 	node.children = [titleNode, ...bodyChildren];
 
 	const className = ['callout', `callout-${canonical.toLowerCase()}`, `callout-family-${def.family}`];
-	if (def.numbered && options.numbering) className.push('is-numbered');
 	if (fold !== 'static') className.push('is-foldable');
 
 	const hProperties = { className, 'data-callout': canonical.toLowerCase() };
-	if (id) hProperties.id = id;
 	if (fold === 'open') hProperties.open = true;
 
 	node.data = { ...node.data, hName: fold === 'static' ? 'div' : 'details', hProperties };
 }
 
 export default function remarkCallout(options = {}) {
-	const opts = { numbering: true, qed: true, ...options };
+	const opts = { qed: true, ...options };
 	return (tree) => {
-		// Scoped to this call, not the outer factory — a fresh counter per
-		// file processed, so numbers don't leak across documents in a build.
-		const counter = { value: 0 };
-		transformCallouts(tree, counter, opts);
+		transformCallouts(tree, opts);
 	};
 }
