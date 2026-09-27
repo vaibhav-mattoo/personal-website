@@ -8,7 +8,8 @@
 	/* Docs layout — mirrors the fumadocs grid used by docs.pears.com. */
 	--layout-width: 1400px;
 	--toc-width: 268px;
-	--content-width: 900px;
+	/* Article column including its --docs-gutter padding: ~72ch of body text. */
+	--content-width: 800px;
 	--toolbar-h: calc(var(--toolbar-top) + var(--toolbar-btn));
 	/* Bottom padding matches --toolbar-top so the toolbar row sits centered
 	   (not just top-anchored) inside the .toolbar-backdrop band. */

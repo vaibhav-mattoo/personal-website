@@ -5,10 +5,13 @@
  *   - md (48rem):  content padding opens up from 1rem to 1.5rem.
  *   - xl (80rem):  the table of contents moves from a collapsible bar above
  *                  the article ("half screen") to a sticky rail on the right.
- *                  The rail column also gains a second row underneath the
- *                  Toc for the local graph (.docs__graph) — 'main' spans
- *                  both rows automatically via the areas below, so the
- *                  article column and its width are unaffected either way.
+ *                  The rail (Toc.astro) also holds the local graph below the
+ *                  contents list, in the same sticky flex column, so the two
+ *                  can't overlap.
+ *
+ * At xl the article column and the rail are sized to their content and
+ * centred together as one cluster, so the article sits a fixed gutter from
+ * the rail at any viewport width instead of floating inside a wide 1fr track.
  */
 
 .docs {
@@ -32,10 +35,11 @@
 @media (min-width: 80rem) {
 	.docs {
 		--docs-gutter: 2rem;
-		grid-template-columns: minmax(0, 1fr) var(--toc-width);
-		grid-template-areas:
-			'main toc'
-			'main graph';
+		grid-template-columns: minmax(0, var(--content-width)) var(--toc-width);
+		grid-template-areas: 'main toc';
+		justify-content: center;
+		/* Plus the article's own right padding: 48px from text to rail. */
+		column-gap: var(--s-4);
 	}
 }
 
@@ -67,19 +71,4 @@
    so prose, code blocks and figures all share one measure. */
 .docs__prose {
 	min-width: 0;
-}
-
-/* Local graph: rail-column placement only exists at >= 80rem — below that
-   the same data renders inside the Toc's collapsed popover panel instead
-   (see Toc.astro), so this copy stays hidden and never affects layout. */
-.docs__graph {
-	display: none;
-}
-
-@media (min-width: 80rem) {
-	.docs__graph {
-		grid-area: graph;
-		display: block;
-		padding: 1rem 1rem 1.5rem 0;
-	}
 }

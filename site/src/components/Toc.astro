@@ -5,13 +5,17 @@ import type { GraphData } from '../lib/graph';
 
 interface Props {
 	headings: MarkdownHeading[];
-	/** Rendered inside the collapsed popover panel, below the contents list. */
+	/** Rendered below the contents list — in the sticky rail at >= 80rem and
+	 *  inside the collapsed popover panel below that. */
 	localGraph?: { data: GraphData; focusId: string };
 }
 
 const { headings, localGraph } = Astro.props;
 const filtered = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const show = filtered.length >= 2;
+// The rail still renders for a short note so its graph has somewhere to live;
+// only the contents list itself needs the two-heading minimum.
+const showRail = show || !!localGraph;
 ---
 
 {
@@ -76,8 +80,18 @@ const show = filtered.length >= 2;
 					)}
 				</div>
 			</div>
+		</>
+	)
+}
 
-			<aside class="toc" aria-labelledby="toc-title">
+{
+	showRail && (
+		<aside
+			class="toc"
+			aria-labelledby={show ? 'toc-title' : undefined}
+			aria-label={show ? undefined : 'Related notes'}
+		>
+			{show && (
 				<h2 class="toc__title" id="toc-title">
 					<svg
 						viewBox="0 0 24 24"
@@ -94,6 +108,8 @@ const show = filtered.length >= 2;
 					</svg>
 					On this page
 				</h2>
+			)}
+			{show && (
 				<nav class="toc__scroll toc__rail" data-toc-scroll>
 					{filtered.map((h) => (
 						<a
@@ -107,8 +123,13 @@ const show = filtered.length >= 2;
 						</a>
 					))}
 				</nav>
-			</aside>
-		</>
+			)}
+			{localGraph && (
+				<div class="toc__graph">
+					<LocalGraph data={localGraph.data} focusId={localGraph.focusId} />
+				</div>
+			)}
+		</aside>
 	)
 }
 
@@ -216,6 +237,9 @@ const show = filtered.length >= 2;
 <style>
 	/* ---- Right-hand rail (>= 80rem) ------------------------------------ */
 
+	/* One sticky column holding both the contents list and the local graph,
+	   so they can never overlap: the list takes whatever height is left and
+	   scrolls internally, the graph keeps its natural height underneath. */
 	.toc {
 		grid-area: toc;
 		display: none;
@@ -254,6 +278,7 @@ const show = filtered.length >= 2;
 
 	.toc__scroll {
 		position: relative;
+		flex: 0 1 auto;
 		min-height: 0;
 		overflow-y: auto;
 		scrollbar-width: none;
@@ -270,6 +295,16 @@ const show = filtered.length >= 2;
 
 	.toc__scroll::-webkit-scrollbar {
 		display: none;
+	}
+
+	.toc__graph {
+		flex-shrink: 0;
+		margin-top: 1.5rem;
+	}
+
+	.toc__scroll + .toc__graph {
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border);
 	}
 
 	/* ---- Shared rail entries ------------------------------------------- */

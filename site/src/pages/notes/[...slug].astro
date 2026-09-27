@@ -8,7 +8,6 @@ import ReadingProgress from '../../components/ReadingProgress.astro';
 import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
 import SequenceNav from '../../components/SequenceNav.astro';
-import LocalGraph from '../../components/LocalGraph.astro';
 import { getBacklinks } from '../../lib/backlinks';
 import { getPublicVault } from '../../lib/vault';
 import { getTopicTree, getGraphData } from '../../lib/topicVault';
@@ -87,10 +86,6 @@ const localGraphData = neighborhood(
 
 	<div class="docs">
 		<Toc headings={headings} localGraph={{ data: localGraphData, focusId: note.id }} />
-
-		<div class="docs__graph">
-			<LocalGraph data={localGraphData} focusId={note.id} />
-		</div>
 
 		<article class="docs__main" data-pagefind-body>
 			<header class="note-head">
