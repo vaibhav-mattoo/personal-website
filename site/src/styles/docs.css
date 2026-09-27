@@ -9,9 +9,10 @@
  *                  contents list, in the same sticky flex column, so the two
  *                  can't overlap.
  *
- * At xl the article column and the rail are sized to their content and
- * centred together as one cluster, so the article sits a fixed gutter from
- * the rail at any viewport width instead of floating inside a wide 1fr track.
+ * At xl the article column and the rail are sized to their content and kept
+ * together as one cluster, a fixed gutter apart. The cluster is centred while
+ * that keeps it clear of the top-left toolbar; on wider screens it stops at
+ * --toolbar-clear and docks there instead of drifting further right.
  */
 
 .docs {
@@ -35,9 +36,20 @@
 @media (min-width: 80rem) {
 	.docs {
 		--docs-gutter: 2rem;
-		grid-template-columns: minmax(0, var(--content-width)) var(--toc-width);
+		--docs-cluster: calc(var(--content-width-wide) + var(--s-4) + var(--toc-width) + var(--s-6));
+		max-width: none;
+		grid-template-columns: minmax(0, var(--content-width-wide)) var(--toc-width);
 		grid-template-areas: 'main toc';
-		justify-content: center;
+		justify-content: start;
+		/* Centred offset, capped so the article's text lines up just right of
+		   the toolbar (the article's own --docs-gutter padding sits inside). */
+		padding-inline-start: clamp(
+			0px,
+			(100% - var(--docs-cluster)) / 2,
+			calc(var(--toolbar-clear) - var(--docs-gutter))
+		);
+		/* Keeps the rail off the window edge when the cluster fills the width. */
+		padding-inline-end: var(--s-6);
 		/* Plus the article's own right padding: 48px from text to rail. */
 		column-gap: var(--s-4);
 	}
@@ -63,6 +75,7 @@
 
 @media (min-width: 80rem) {
 	.docs__main {
+		max-width: var(--content-width-wide);
 		padding: 2.5rem var(--docs-gutter) 1.5rem;
 	}
 }

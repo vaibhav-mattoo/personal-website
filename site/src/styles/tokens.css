@@ -10,6 +10,11 @@
 	--toc-width: 268px;
 	/* Article column including its --docs-gutter padding: ~72ch of body text. */
 	--content-width: 800px;
+	/* Article column at >= 80rem, where the rail sits beside it (docs.css). */
+	--content-width-wide: 1000px;
+	/* Right edge of the fixed top-left toolbar (menu, theme, mode, handle)
+	   plus breathing room — wide note layouts never start text left of this. */
+	--toolbar-clear: 19rem;
 	--toolbar-h: calc(var(--toolbar-top) + var(--toolbar-btn));
 	/* Bottom padding matches --toolbar-top so the toolbar row sits centered
 	   (not just top-anchored) inside the .toolbar-backdrop band. */
