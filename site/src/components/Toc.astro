@@ -177,8 +177,11 @@ const showRail = show || !!localGraph;
 			if (label) label.textContent = active?.textContent?.trim() || 'On this page';
 
 			// Keep the active entry visible in the rail without scrolling the page.
-			if (scroller && active && scroller.contains(active)) {
-				const top = active.offsetTop - scroller.clientHeight / 2 + active.clientHeight / 2;
+			// Look it up inside the rail itself: `active` above is the popover's
+			// copy (it comes first in the DOM), which the rail can't scroll to.
+			const railActive = scroller?.querySelector<HTMLElement>(`[data-toc-link][href="#${CSS.escape(id ?? '')}"]`);
+			if (scroller && railActive) {
+				const top = railActive.offsetTop - scroller.clientHeight / 2 + railActive.clientHeight / 2;
 				scroller.scrollTo({ top, behavior: 'smooth' });
 			}
 		}
