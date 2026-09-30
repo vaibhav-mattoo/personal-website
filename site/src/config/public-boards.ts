@@ -18,9 +18,13 @@ export const publicBoards: PublicBoard[] = [
 	// Example entry — replace token with a real one or remove this entry
 	// entirely if no boards are published yet.
 	{
-		title: 'Research',
-		description: 'Thesis work in flight',
-		url: 'https://tasks.vmattoo.dev/1/public/boards/NaCatNfRAUj2vkTy5SFofsgD',
+		title: 'Daily TODO',
+		description: 'Daily work in flight',
+		url: 'https://tasks.vmattoo.dev/1/public/boards/pHj6szE47XZt7oUMEd9bWEp4',
+	},
+	{
+		title: 'Reading List',
+		url: 'https://tasks.vmattoo.dev/1/public/boards/p4EU5ZaT8z18YJKSsCLWBonV',
 	},
 ];
 
