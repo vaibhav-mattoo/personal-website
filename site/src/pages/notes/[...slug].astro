@@ -82,6 +82,22 @@ const localGraphData = neighborhood(
 ---
 
 <Base title={note.data.title} description={note.data.summary} docs>
+	<!-- Opening /notes/x/#section: browsers otherwise paint the top of the
+	     note and only jump to the heading at the `load` event, a visible
+	     second later. The inline script after the prose jumps as soon as the
+	     note body is parsed (the heading can't reach the top of the viewport
+	     before the content below it exists). `rel=expect` (Chromium) holds the
+	     first paint until the marker after that script, so the first frame is
+	     already at the section; other browsers still get the early jump. -->
+	<script is:inline slot="head">
+		if (location.hash.length > 1) {
+			const link = document.createElement('link');
+			link.rel = 'expect';
+			link.href = '#note-prose-end';
+			link.setAttribute('blocking', 'render');
+			document.head.appendChild(link);
+		}
+	</script>
 	<ReadingProgress />
 
 	<div class="docs">
@@ -104,6 +120,14 @@ const localGraphData = neighborhood(
 			<div class="prose docs__prose">
 				<Content />
 			</div>
+			<script is:inline>
+				(() => {
+					const id = decodeURIComponent(location.hash.slice(1));
+					const target = id && document.getElementById(id);
+					if (target) target.scrollIntoView();
+				})();
+			</script>
+			<span id="note-prose-end" hidden></span>
 
 			<p class="note__back"><a href="/notes/">← All notes</a></p>
 
