@@ -22,6 +22,8 @@ export default defineConfig({
 	// production domain when unset, e.g. for local builds).
 	site: `https://${process.env.PUBLIC_SITE_NAME ?? 'vmattoo.dev'}`,
 	vite: { envDir: '..' },
+	// Boards now live directly on /tasks/; keep the old URL working.
+	redirects: { '/tasks/boards/': '/tasks/' },
 	integrations: [
 		react(),
 		sitemap(),
