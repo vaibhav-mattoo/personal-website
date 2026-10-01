@@ -1,11 +1,13 @@
 ---
 import Base from '../../layouts/Base.astro';
 import TerminalPrompt from '../../components/TerminalPrompt.astro';
+import { publicBoards, fizzyLoginUrl } from '../../config/public-boards';
 
-const items = [
-	{ name: 'boards/', href: '/tasks/boards/', blurb: "Boards I'm actively working on" },
-	{ name: 'calendar/', href: '/tasks/calendar/', blurb: 'Book 30 minutes with me' },
-];
+const slugify = (s: string) =>
+	s
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-|-$/g, '');
 ---
 
 <Base title="Tasks" description="Boards I'm working on and a calendar to book time.">
@@ -14,18 +16,60 @@ const items = [
 		<p>Boards I'm working on and a calendar to book time.</p>
 	</header>
 
-	<TerminalPrompt command="ls tasks/" />
+	<a class="cal" href="/tasks/calendar/">
+		<span class="cal__sigil">$</span>
+		<span class="cal__cmd">cal --book 30min</span>
+		<span class="cal__hint">book a call →</span>
+	</a>
 
-	<nav class="cards">
-		{
-			items.map((i) => (
-				<a class="card" href={i.href}>
-					<span class="card__name">{i.name}</span>
-					<span class="card__blurb">{i.blurb}</span>
-				</a>
-			))
-		}
-	</nav>
+	<TerminalPrompt command="ls ~/tasks/boards/" />
+
+	{
+		publicBoards.length === 0 ? (
+			<p class="empty">No public boards yet.</p>
+		) : (
+			<div class="boards">
+				{publicBoards.map((b) => {
+					const slug = slugify(b.title);
+					return (
+						<section class="term" aria-labelledby={`board-${slug}`}>
+							<div class="term__bar">
+								<span class="term__dots" aria-hidden="true">
+									<i />
+									<i />
+									<i />
+								</span>
+								<h2 class="term__title" id={`board-${slug}`}>
+									~/tasks/boards/{slug}
+								</h2>
+								<a class="term__open" href={b.url} target="_blank" rel="noopener">
+									open ↗
+								</a>
+							</div>
+							<p class="term__line">
+								<span class="term__sigil">$</span> cat {slug}/README
+								<span class="term__out">
+									{b.description ?? 'A live, read-only view of this board — updates as I do.'}
+								</span>
+							</p>
+							<div class="term__frame">
+								<iframe
+									src={b.url}
+									title={b.title}
+									loading="lazy"
+									referrerpolicy="no-referrer-when-downgrade"
+								/>
+							</div>
+						</section>
+					);
+				})}
+			</div>
+		)
+	}
+
+	<p class="login">
+		<a href={fizzyLoginUrl} target="_blank" rel="noopener">Fizzy login ↗</a>
+	</p>
 </Base>
 
 <style>
@@ -46,45 +90,187 @@ const items = [
 		font-family: var(--font-body);
 	}
 
-	.cards {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-4);
-		margin: var(--s-1) 0 var(--s-4);
-	}
-
-	.card {
-		display: flex;
-		flex-direction: column;
-		gap: var(--s-2);
-		flex: 1 1 220px;
-		max-width: 260px;
-		padding: var(--s-4) var(--s-5);
-		border: 1px solid transparent;
-		border-radius: var(--radius-lg);
-		background: var(--surface);
+	/* Calendar call-to-action, styled as a runnable shell command. */
+	.cal {
+		display: inline-flex;
+		align-items: baseline;
+		gap: var(--s-3);
+		margin: var(--s-4) 0 var(--s-2);
+		padding: var(--s-3) var(--s-5);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--code-bg);
+		font-family: var(--font-display);
 		text-decoration: none;
 		transition:
 			border-color var(--dur-fast) var(--ease),
 			background-color var(--dur-fast) var(--ease);
 	}
 
-	.card:hover {
+	.cal:hover,
+	.cal:focus-visible {
 		border-color: var(--accent);
 		background: var(--accent-soft);
 	}
 
-	.card__name {
-		font-family: var(--font-display);
-		font-size: var(--text-lg);
-		font-weight: 700;
-		color: var(--accent);
+	.cal__sigil {
+		color: var(--muted);
 	}
 
-	.card__blurb {
-		font-family: var(--font-body);
+	.cal__cmd {
+		color: var(--accent);
+		font-weight: 700;
+	}
+
+	.cal__cmd,
+	.cal__hint {
+		white-space: nowrap;
+	}
+
+	.cal__hint {
+		color: var(--muted);
+		font-size: var(--text-sm);
+	}
+
+	@media (max-width: 480px) {
+		.cal__hint {
+			display: none;
+		}
+	}
+
+	.empty {
+		color: var(--muted);
+		font-style: italic;
+		margin: 1rem 0;
+	}
+
+	.boards {
+		display: flex;
+		flex-direction: column;
+		gap: var(--s-8);
+		margin: var(--s-4) 0;
+	}
+
+	/* Each board sits in a terminal window: title bar, one prompt line, then
+	   the live board as the "output". */
+	.term {
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		background: var(--code-bg);
+		overflow: hidden;
+	}
+
+	.term__bar {
+		display: flex;
+		align-items: center;
+		gap: var(--s-3);
+		padding: var(--s-2) var(--s-4);
+		border-bottom: 1px solid var(--border);
+		background: var(--card);
+		font-family: var(--font-display);
+	}
+
+	.term__dots {
+		display: inline-flex;
+		gap: 6px;
+		flex: none;
+	}
+
+	.term__dots i {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--fg) 22%, var(--card));
+	}
+
+	.term__dots i:first-child {
+		background: var(--accent);
+	}
+
+	.term__title {
+		flex: 1;
+		min-width: 0;
+		margin: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--fg);
+		text-align: center;
+	}
+
+	.term__open {
+		flex: none;
+		font-size: var(--text-xs);
+		color: var(--muted);
+		text-decoration: none;
+		border-bottom: 1px dotted var(--muted);
+	}
+
+	.term__open:hover {
+		color: var(--accent);
+		border-bottom-color: var(--accent);
+	}
+
+	.term__line {
+		margin: 0;
+		padding: var(--s-3) var(--s-4);
+		font-family: var(--font-display);
 		font-size: var(--text-sm);
 		color: var(--fg);
+	}
+
+	.term__sigil {
+		color: var(--accent);
+		font-weight: 700;
+	}
+
+	.term__out {
+		display: block;
+		margin-top: var(--s-1);
+		color: var(--muted);
+	}
+
+	.term__frame {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 10;
+		border-top: 1px solid var(--border-subtle);
+		background: var(--surface);
+	}
+
+	.term__frame iframe {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: 0;
+	}
+
+	@media (max-width: 640px) {
+		.term__frame {
+			aspect-ratio: 3 / 4;
+		}
+	}
+
+	.login {
+		margin: 1.5rem 0 0;
+		font-family: var(--font-display);
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+
+	.login a {
+		color: var(--muted);
+		text-decoration: none;
+		border-bottom: 1px dotted var(--muted);
+	}
+
+	.login a:hover {
+		color: var(--accent);
+		border-bottom-color: var(--accent);
 	}
 </style>
 
