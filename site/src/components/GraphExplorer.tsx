@@ -64,12 +64,16 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 	const [pagefindUnavailable, setPagefindUnavailable] = useState(false);
 	const [hits, setHits] = useState<PagefindHit[]>([]);
 	const pagefindRef = useRef<PagefindApi | null>(null);
+	// Pagefind (its JS, WASM and index) is only fetched once the search box is
+	// used, so it doesn't compete with the graph for network and CPU on load.
+	const [searchWanted, setSearchWanted] = useState(false);
 
 	// The Pagefind runtime is a JS module emitted into dist/pagefind/ by the
 	// build step (see astro.config.mjs) — it doesn't exist in dev and isn't
 	// part of the Vite build graph, so it's a runtime URL import, not a
 	// normal one, and is expected to 404 locally until `npm run build`.
 	useEffect(() => {
+		if (!searchWanted) return;
 		let cancelled = false;
 		(async () => {
 			try {
@@ -88,7 +92,7 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [searchWanted]);
 
 	// Debounced full-text search: title-substring highlighting (below) is
 	// instant and needs no index, but a body-text match has to go through
@@ -175,7 +179,11 @@ export default function GraphExplorer({ data }: GraphExplorerProps) {
 				className="graph-explorer__search"
 				placeholder="Search notes…"
 				value={query}
-				onChange={(e) => setQuery(e.target.value)}
+				onFocus={() => setSearchWanted(true)}
+				onChange={(e) => {
+					setSearchWanted(true);
+					setQuery(e.target.value);
+				}}
 				aria-label="Search notes by title or full text"
 			/>
 

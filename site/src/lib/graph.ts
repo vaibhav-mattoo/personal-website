@@ -34,6 +34,8 @@ export type GraphNode = {
 	parent?: string;
 	/** Only for kind: 'topic' — notes tagged with this id or any deeper path under it. */
 	noteCount?: number;
+	/** Starting position from the build-time layout (lib/graphSeed.ts), full graph only. */
+	seed?: { x: number; y: number };
 };
 
 export type GraphEdge = {

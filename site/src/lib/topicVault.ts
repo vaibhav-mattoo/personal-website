@@ -1,5 +1,6 @@
 import { getCollection } from 'astro:content';
 import { buildGraphData, type GraphData } from './graph';
+import { withSeedLayout } from './graphSeed';
 import { buildTopicTree, type NoteEntry, type TopicEntry, type TopicTree } from './topics';
 import { getPublicVault } from './vault';
 
@@ -60,7 +61,7 @@ export async function getGraphData(): Promise<GraphData> {
 	if (!cachedGraph) {
 		const { entries, index } = await getPublicVault();
 		const tree = await getTopicTree();
-		cachedGraph = buildGraphData(entries, index, tree);
+		cachedGraph = withSeedLayout(buildGraphData(entries, index, tree));
 	}
 	return cachedGraph;
 }

@@ -9,7 +9,9 @@ import type ForceGraphCtor from 'force-graph';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { neighborhood } from '../lib/links';
 import type { GraphData, GraphEdge, GraphNode } from '../lib/graph';
-import { layoutGraph, type LayoutBox } from '../lib/graphLayout';
+import { layoutGraph } from '../lib/graphLayout';
+import { seedLayoutBoxes, type HalfExtent } from '../lib/graphSeed';
+import { estimateTopicHalfWidth, nodeRadius, topicFontSize } from '../lib/graphSizing';
 import { evenlySpacedHues, hexToOklchHue, subtopicOklch, topicOklch } from '../lib/color';
 
 export type { GraphData, GraphEdge, GraphNode };
@@ -79,29 +81,6 @@ function edgeDash(type: string): number[] | null {
 		default:
 			return [6, 2]; // plain dash fallback for any other declared relation type
 	}
-}
-
-function nodeRadius(node: GraphNode): number {
-	const base = Math.min(4 + Math.sqrt(node.degree) * 2.2, 16);
-	// Documents (kind: 'document' — an external resource like a book/PDF,
-	// not a written note) get a visibly bigger circle so they read as a
-	// different category of thing at a glance, not just another note.
-	return node.kind === 'document' ? base * 1.6 : base;
-}
-
-/**
- * Topic nodes render as text, not a shape — sized by how deep they are in
- * the tag path (`topics` is that node's own ancestor-or-self chain, so its
- * length *is* the depth: 1 = top-level) and, secondarily, by how many
- * notes it has — log-scaled and capped so a heavily-populated topic
- * doesn't dwarf everything and an empty one stays legible.
- */
-function topicFontSize(node: GraphNode): number {
-	const depth = node.topics.length || 1;
-	const base = Math.max(14, Math.round(64 * 0.5 ** (depth - 1)));
-	const noteCount = node.noteCount ?? 0;
-	const countFactor = Math.min(1.35, 1 + Math.log2(noteCount + 1) * 0.08);
-	return Math.round(base * countFactor);
 }
 
 /**
@@ -241,8 +220,6 @@ function pinNodesByDate(nodes: SimNode[], enabled: boolean): void {
 	}
 }
 
-type HalfExtent = { halfW: number; halfH: number };
-
 /** Each node's drawn half-width/half-height — used both to seed the initial
  *  layout and to drive the live rectangle-collision force below. */
 function measureHalfExtents(nodes: SimNode[], fontFamily: string): Map<string, HalfExtent> {
@@ -257,7 +234,7 @@ function measureHalfExtents(nodes: SimNode[], fontFamily: string): Map<string, H
 				measureCtx.font = `600 ${size}px ${fontFamily}`;
 				halfW = measureCtx.measureText(n.title).width / 2 + 4;
 			} else {
-				halfW = (n.title.length * size * 0.32) + 8;
+				halfW = estimateTopicHalfWidth(n, size);
 			}
 			halfH = size / 2 + 4;
 		} else {
@@ -281,20 +258,22 @@ function measureHalfExtents(nodes: SimNode[], fontFamily: string): Map<string, H
  * *seed* are logged, not thrown (the live rectCollide force cleans up any
  * that remain once the simulation runs).
  */
-function seedInitialLayout(nodes: SimNode[], extents: Map<string, HalfExtent>): void {
-	const byId = new Map(nodes.map((n) => [n.id, n]));
-
-	const boxes: LayoutBox[] = nodes.map((n) => {
-		const extent = extents.get(n.id)!;
-		let pullTarget: string | undefined;
-		if (n.kind === 'topic') {
-			pullTarget = n.parent;
-		} else if (n.topics[0] && byId.has(n.topics[0])) {
-			pullTarget = n.topics[0];
+function seedInitialLayout(nodes: SimNode[], extents: Map<string, HalfExtent>, usePrecomputed: boolean): void {
+	// The full graph ships positions computed at build time (lib/graphSeed.ts)
+	// — running layoutGraph here took seconds on the main thread. Subsets
+	// (a note's local graph, the mobile topics-only view) are small enough to
+	// lay out on the spot.
+	if (usePrecomputed && nodes.every((n) => n.seed)) {
+		for (const n of nodes) {
+			n.x = n.seed!.x;
+			n.y = n.seed!.y;
+			n.fx = undefined;
+			n.fy = undefined;
 		}
-		return { id: n.id, halfW: extent.halfW, halfH: extent.halfH, pullTarget };
-	});
+		return;
+	}
 
+	const boxes = seedLayoutBoxes(nodes, (n) => extents.get(n.id)!);
 	const { positions, remainingOverlaps } = layoutGraph(boxes);
 	for (const n of nodes) {
 		const p = positions.get(n.id);
@@ -571,6 +550,10 @@ export default function Graph({
 	}, [baseData, focusId, depth]);
 
 	const graphDataRef = useRef(graphData);
+	// Only the unfiltered graph matches the build-time seed layout; a focus
+	// neighborhood or the mobile subset is laid out on the client instead.
+	const isFullGraphRef = useRef(true);
+	isFullGraphRef.current = graphData === data;
 
 	function relayout(fg: FG | null) {
 		if (!fg) return;
@@ -580,7 +563,7 @@ export default function Graph({
 		if (timelineRef.current) {
 			pinNodesByDate(graphDataRef.current.nodes, true);
 		} else {
-			seedInitialLayout(graphDataRef.current.nodes, extentsRef.current);
+			seedInitialLayout(graphDataRef.current.nodes, extentsRef.current, isFullGraphRef.current);
 		}
 		// Both modes run a real, live simulation now (charge + link, plus the
 		// always-registered rectCollide force) — an open, organic layout that
