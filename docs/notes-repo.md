@@ -13,10 +13,11 @@ before anything that reads it (`npm run dev`/`check`/`build`, via the
 2. Its `.github/workflows/notify-deploy.yml` fires and dispatches a
    `notes-updated` event to this repo's `deploy.yml`
    (`repository_dispatch`).
-3. That runs CI (typecheck + build, with the notes repo cloned in for
-   real content) and then, on success, SSHes into the Azure VM and runs
-   `deploy/update.sh`, which itself calls `deploy/sync-notes.sh` to pull
-   the latest notes content before rebuilding the Docker image.
+3. That runs CI (build only — the typecheck is skipped since no code
+   changed — with the notes repo cloned in for real content), uploads the
+   built site to the Azure VM and switches the live site to it, then runs
+   `deploy/update.sh` to reconcile the containers. See
+   `deploy/GITHUB_ACTIONS.md`.
 
 Locally, `deploy/sync-notes.sh` prefers `NOTES_LOCAL_PATH` (a plain
 `rsync`, no git) over cloning, so day-to-day editing in the notes repo's
@@ -31,8 +32,10 @@ working tree shows up in `npm run dev` immediately, committed or not.
   *public* half as a read-only Deploy Key on the `vaibhav-mattoo/notes`
   GitHub repo, and add the *private* half as this repo's
   `NOTES_DEPLOY_KEY` secret (Settings → Secrets and variables → Actions).
-- **VM deploy** (`deploy/update.sh`, runs as root via
-  `sudo /opt/personal-website/deploy/update.sh`): install a (or the same)
+- **VM deploy** — only needed for `deploy/update.sh --local-build`, a
+  manual build on the VM (CI deploys don't touch the notes repo there),
+  which runs as root via `sudo /opt/personal-website/deploy/update.sh`:
+  install a (or the same)
   deploy-key private half somewhere root's SSH can use it — e.g.
   `/root/.ssh/notes_deploy_key` plus a `~/.ssh/config` entry:
   ```

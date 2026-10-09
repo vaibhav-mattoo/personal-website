@@ -167,8 +167,10 @@ EOF
 deploy_stack() {
 	cd "${DEPLOY_DIR}"
 	export SITE_DOMAIN
-	log "Building and starting stack (project: ${COMPOSE_PROJECT})"
-	docker compose -p "${COMPOSE_PROJECT}" "${COMPOSE_FILES[@]}" up -d --build --remove-orphans
+	# Production serves a release directory that CI normally uploads; on a
+	# fresh VM there isn't one yet, so build the first release right here.
+	log "Building the first site release and starting stack (project: ${COMPOSE_PROJECT})"
+	"${DEPLOY_DIR}/deploy/update.sh" --local-build
 }
 
 main() {

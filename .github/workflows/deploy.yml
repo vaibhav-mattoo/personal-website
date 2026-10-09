@@ -5,10 +5,8 @@ on:
     branches: [main]
   workflow_dispatch:
   # Fired by vaibhav-mattoo/notes' notify-deploy workflow on every push to
-  # its master — a content-only change with no code change here still
-  # needs a rebuild, since notes/topics content is baked into the Docker
-  # image at build time (deploy/update.sh runs deploy/sync-notes.sh before
-  # `docker compose ... --build`).
+  # its master. The site (notes included) is built here in CI and uploaded
+  # to the VM, so a content-only change just needs a fresh build + upload.
   repository_dispatch:
     types: [notes-updated]
 
@@ -20,20 +18,73 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
     secrets: inherit
+    with:
+      # A notes push changes no code, so `astro check` can't find anything
+      # new; the build still validates every note against the content schema.
+      skip_check: ${{ github.event_name == 'repository_dispatch' }}
+      upload_dist: true
 
   deploy:
     needs: ci
     runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      # Relative to the deploy user's home; matches SITE_WEB_DIR's default in
+      # docker-compose.prod.yml and deploy/update.sh.
+      WEB_DIR: personal-website-web
+      RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - name: Deploy to Azure VM
-        uses: appleboy/ssh-action@v1.2.2
+      - name: Download built site
+        uses: actions/download-artifact@v4
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          script_stop: true
-          command_timeout: 30m
-          script: |
-            set -euo pipefail
-            sudo /opt/personal-website/deploy/update.sh
+          name: site-dist
+          path: dist
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<EOF
+          Host vm
+            HostName $HOST
+            User $DEPLOY_USER
+            Port $PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+          EOF
+
+      # Upload into a new release directory, hard-linking files that are
+      # unchanged from the live release (--link-dest + --checksum), then swap
+      # the `current` symlink atomically (rename over it), so visitors never
+      # see a half-copied site. Caddy bind-mounts this directory, so the new
+      # release is live as soon as the symlink moves.
+      - name: Upload release and switch to it
+        run: |
+          ssh vm "mkdir -p $WEB_DIR/releases"
+          link_dest=()
+          if ssh vm "test -d $WEB_DIR/current/"; then
+            link_dest=(--link-dest="../../current/")
+          fi
+          # No -t: build output has fresh mtimes every run, and link-dest only
+          # hard-links files whose preserved attributes match.
+          rsync -rlpD --checksum --delete "${link_dest[@]}" \
+            dist/ "vm:$WEB_DIR/releases/$RELEASE/"
+          ssh vm "cd $WEB_DIR && test -f releases/$RELEASE/index.html \
+            && touch releases/$RELEASE \
+            && ln -sfn releases/$RELEASE current.tmp && mv -Tf current.tmp current"
+
+      - name: Update server
+        run: ssh vm 'sudo /opt/personal-website/deploy/update.sh'
+
+      # Keep the newest five releases by switch time (`touch` above); the
+      # live one is never removed.
+      - name: Prune old releases
+        run: |
+          ssh vm "cd $WEB_DIR/releases && ls -1t | tail -n +6 | while read -r old; do \
+            [ \"releases/\$old\" = \"\$(readlink ../current)\" ] || rm -rf -- \"\$old\"; done"

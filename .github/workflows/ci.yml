@@ -3,6 +3,15 @@ name: CI
 on:
   pull_request:
   workflow_call:
+    inputs:
+      skip_check:
+        description: Skip `astro check` (notes-only deploys change no code)
+        type: boolean
+        default: false
+      upload_dist:
+        description: Upload the built site as the `site-dist` artifact for deploy
+        type: boolean
+        default: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -30,8 +39,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Same build settings the production image used to bake in
+      # (site/Dockerfile): .env.example plus the production site name and
+      # comments server, since this build is what gets deployed.
+      - name: Production build settings
+        run: |
+          cp .env.example .env
+          sed -i "s/^PUBLIC_SITE_NAME=.*/PUBLIC_SITE_NAME=vmattoo.dev/" .env
+          sed -i "s|^PUBLIC_WALINE_SERVER_URL=.*|PUBLIC_WALINE_SERVER_URL=https://comments.vmattoo.dev|" .env
+
+      # Astro's content-layer store holds every note's rendered HTML, so with
+      # it restored only changed notes are re-rendered. Keyed on the code
+      # that shapes that HTML (markdown plugins, Astro config, content schema,
+      # dependencies): any change there starts from an empty store, since a
+      # stale store would keep serving HTML from the old plugins.
+      - name: Cache rendered notes
+        uses: actions/cache@v4
+        with:
+          path: site/node_modules/.astro
+          key: astro-store-${{ hashFiles('package-lock.json', 'site/astro.config.mjs', 'site/src/plugins/**', 'site/src/content.config.ts') }}-${{ github.run_id }}
+          restore-keys: |
+            astro-store-${{ hashFiles('package-lock.json', 'site/astro.config.mjs', 'site/src/plugins/**', 'site/src/content.config.ts') }}-
+
       - name: Typecheck
+        if: ${{ !inputs.skip_check }}
         run: npm run check
 
       - name: Build site (includes Pagefind index)
         run: npm run build
+
+      - name: Upload built site
+        if: ${{ inputs.upload_dist }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: site/dist
+          retention-days: 3
+          if-no-files-found: error
