@@ -23,7 +23,9 @@
 		output stdout
 		format json
 	}
-	root * /srv
+	# CI-built release, bind-mounted from the VM (docker-compose.prod.yml);
+	# `current` is a symlink that each deploy swaps atomically.
+	root * /web/current
 	encode gzip zstd
 
 	rate_limit {

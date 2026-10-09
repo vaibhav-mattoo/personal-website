@@ -27,7 +27,7 @@ Usage: deploy.sh <command> [options]
 
 Commands:
   setup <domain>     One-time (or re-)provision: Docker, clone/pull repo, build & run site
-  update             Pull latest main and rebuild containers (same as CI deploy step)
+  update             Pull latest main, build the site on the VM, and update containers (CI deploys build in GitHub Actions instead)
   teardown           Stop site, remove containers/volumes and /opt/personal-website
   setup-ci [user]    One-time: passwordless sudo for update.sh + install deploy SSH public key
 
@@ -82,7 +82,8 @@ cmd_setup() {
 
 cmd_update() {
 	require_root
-	exec "${SCRIPT_DIR}/update.sh"
+	# Manual update without CI: build the site here as well.
+	exec "${SCRIPT_DIR}/update.sh" --local-build
 }
 
 cmd_teardown() {

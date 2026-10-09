@@ -1,6 +1,6 @@
 # GitHub Actions → Azure VM deploy
 
-Pushes to `main` run CI (typecheck + full Astro/Pagefind build), then SSH to your VM and run `deploy/update.sh` (git pull + `docker compose` rebuild).
+Pushes to `main` (and notes-repo pushes, via `repository_dispatch`) run CI, which builds the whole site (Astro + Pagefind). The deploy job uploads that build to the VM with `rsync`, switches the live site to it, then runs `deploy/update.sh` (git pull + a cheap `docker compose up` that only rebuilds the Caddy image if it changed).
 
 ## One-time VM setup
 
@@ -57,12 +57,14 @@ In the repo: **Settings → Secrets and variables → Actions → New repository
 
 ## What runs on each push to `main`
 
-1. **CI job** — `npm ci`, `astro check`, `astro build` (Pagefind index included).
-2. **Deploy job** — SSH `sudo /opt/personal-website/deploy/update.sh`:
-   - `git reset --hard origin/main`
-   - `docker compose … up -d --build` (rebuilds static site + Caddy image on the VM)
+1. **CI job** — `npm ci`, `astro check` (skipped for notes-only deploys), `npm run build` with production settings (`.env.example` + `vmattoo.dev` + the comments URL), Pagefind included. Astro's rendered-notes store is cached between runs, keyed on the markdown plugins/config/schema/lockfile, so only changed notes re-render. The built `site/dist` is uploaded as the `site-dist` artifact.
+2. **Deploy job** (as `DEPLOY_USER`, no sudo for the upload):
+   - `rsync` the build to `~/personal-website-web/releases/<run>/`, hard-linking files unchanged from the live release.
+   - Swap `~/personal-website-web/current` to it atomically — the site is live from this moment, since Caddy bind-mounts that directory (`docker-compose.prod.yml`, `root * /web/current` in `Caddyfile.prod`).
+   - `sudo /opt/personal-website/deploy/update.sh`: `git reset --hard origin/main`, then `docker compose … up -d --build` for the Caddy-only `server` image target (cached unless the Dockerfile/Caddy changed).
+   - Prune all but the newest five releases.
 
-Search and other features stay working because the production image runs the same `npm run build` pipeline as CI (including Pagefind).
+Rolling back is a symlink swap on the VM: `ln -sfn releases/<older> ~/personal-website-web/current.tmp && mv -Tf ~/personal-website-web/current.tmp ~/personal-website-web/current`.
 
 ## Manual deploy
 

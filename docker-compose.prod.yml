@@ -2,6 +2,8 @@
 services:
   caddy:
     build:
+      # Caddy only — the site itself is built in CI and mounted below.
+      target: server
       args:
         PUBLIC_SITE_NAME: ${SITE_DOMAIN}
         PUBLIC_WALINE_SERVER_URL: ${PUBLIC_WALINE_SERVER_URL:-https://comments.${SITE_DOMAIN}}
@@ -12,6 +14,9 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      # Release directory written by the GitHub Actions deploy job (as the
+      # deploy user, no sudo): releases/<id>/ plus a `current` symlink.
+      - ${SITE_WEB_DIR:-/home/vaibhav/personal-website-web}:/web:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:

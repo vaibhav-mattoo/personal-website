@@ -48,7 +48,7 @@ sudo /opt/personal-website/deploy/deploy.sh setup vmattoo.dev
 
 | Command | What it does |
 |---------|----------------|
-| `sudo deploy/deploy.sh update` | `git pull` + rebuild/restart (same step CI uses) |
+| `sudo deploy/deploy.sh update` | `git pull`, build the site on the VM (`update.sh --local-build`), update containers — for deploying without CI |
 | `sudo deploy/deploy.sh teardown` | Remove site, containers, volumes, and deploy tree |
 | `deploy/deploy.sh setup-ci <user> [key.pub]` | Allow GitHub Actions SSH + passwordless `update.sh` |
 | `${DEPLOY_DIR}/.env` on the VM | Waline JWT and SMTP config — auto-generated on first `setup`, preserved across `update`, removed by `teardown` |
