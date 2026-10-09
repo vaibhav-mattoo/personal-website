@@ -383,6 +383,128 @@
 	font-style: italic;
 }
 
+/* ```plot blocks — static SVG rendered at build time by
+   plugins/remark-plot.mjs; every color is a token so plots follow the theme. */
+.prose .plot {
+	margin: 1.5rem 0;
+	padding: var(--s-3) var(--s-3) var(--s-2);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--surface);
+}
+
+.prose .plot__svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	font-family: var(--font-display);
+}
+
+.prose .plot__grid {
+	stroke: var(--border-subtle);
+	stroke-width: 1;
+}
+
+.prose .plot__axis {
+	stroke: var(--border-strong);
+	stroke-width: 1.25;
+}
+
+.prose .plot__frame {
+	fill: none;
+	stroke: var(--border);
+	stroke-width: 1;
+}
+
+.prose .plot__tick {
+	fill: var(--muted);
+	font-size: 13px;
+}
+
+.prose .plot__label {
+	fill: var(--fg);
+	font-size: 14px;
+}
+
+/* The SVG scales down to fit narrow screens, text included; bump the text
+   size (in SVG units) so labels stay readable on a phone. */
+@media (max-width: 560px) {
+	.prose .plot__tick {
+		font-size: 20px;
+	}
+
+	.prose .plot__label {
+		font-size: 22px;
+	}
+}
+
+.prose .plot__curve {
+	fill: none;
+	stroke-width: 2.5;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+}
+
+.prose .plot__curve--1 {
+	stroke: var(--plot-1);
+}
+
+.prose .plot__curve--2 {
+	stroke: var(--plot-2);
+	stroke-dasharray: 8 5;
+}
+
+.prose .plot__curve--3 {
+	stroke: var(--plot-3);
+	stroke-dasharray: 2 5;
+}
+
+.prose .plot__curve--4 {
+	stroke: var(--plot-4);
+	stroke-dasharray: 10 4 2 4;
+}
+
+.prose .plot__legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-1) var(--s-5);
+	justify-content: center;
+	margin: var(--s-2) 0 0;
+	padding: 0;
+	list-style: none;
+	font-family: var(--font-display);
+	font-size: var(--text-sm);
+	color: var(--fg);
+}
+
+.prose .plot__legend li {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--s-2);
+	margin: 0;
+}
+
+.prose .plot__swatch {
+	width: 24px;
+	height: 8px;
+}
+
+.prose .plot figcaption {
+	margin-top: var(--s-2);
+	text-align: center;
+	font-family: var(--font-body);
+	font-size: 0.9rem;
+	color: var(--muted);
+	font-style: italic;
+}
+
+.prose .plot--error {
+	border-color: var(--callout-caution);
+	color: var(--callout-caution);
+	font-family: var(--font-display);
+	font-size: var(--text-sm);
+}
+
 .prose .heading-anchor {
 	margin-left: 0.5rem;
 	color: var(--muted);

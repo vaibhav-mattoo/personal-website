@@ -83,6 +83,15 @@
 	--surface: color-mix(in srgb, var(--fg) 4%, var(--bg));
 	--border-subtle: color-mix(in srgb, var(--border) 60%, var(--bg));
 	--border-strong: color-mix(in srgb, var(--border) 45%, var(--fg));
+
+	/* Curve colors for ```plot blocks (plugins/remark-plot.mjs): the active
+	   accent first, then the fixed semantic hues, which are already defined
+	   per mode. Curves also differ by dash pattern, so they never rely on
+	   color alone. */
+	--plot-1: var(--accent);
+	--plot-2: var(--callout-note);
+	--plot-3: var(--callout-warning);
+	--plot-4: var(--callout-important);
 }
 
 /* Surfaces — taniarascia.com beige / gray scale.
