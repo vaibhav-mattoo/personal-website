@@ -13,6 +13,7 @@ import remarkCallout from './src/plugins/remark-callout.mjs';
 import remarkMathDisplay from './src/plugins/remark-math-display.mjs';
 import remarkPlot from './src/plugins/remark-plot.mjs';
 import remarkBlockIds from './src/plugins/remark-block-ids.mjs';
+import remarkBits from './src/plugins/remark-bits.mjs';
 import { runLinkReport } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
@@ -134,7 +135,7 @@ export default defineConfig({
 		},
 	],
 	markdown: {
-		remarkPlugins: [remarkBlockIds, remarkPlot, remarkWikilink, remarkCallout, remarkMath, remarkMathDisplay],
+		remarkPlugins: [remarkBlockIds, remarkPlot, remarkBits, remarkWikilink, remarkCallout, remarkMath, remarkMathDisplay],
 		rehypePlugins: [
 			rehypeKatex,
 			[
