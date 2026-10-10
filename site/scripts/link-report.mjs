@@ -39,6 +39,7 @@ async function loadNoteEntries() {
 			aliases: Array.isArray(data.aliases) ? data.aliases : [],
 			relations: Array.isArray(data.relations) ? data.relations : [],
 			cites: Array.isArray(data.cites) ? data.cites : [],
+			sequence: Array.isArray(data.sequence) ? data.sequence : [],
 			date: typeof data.date === 'string' ? new Date(data.date) : new Date(0),
 			summary: typeof data.summary === 'string' ? data.summary : undefined,
 			body,
@@ -95,6 +96,14 @@ export async function runLinkReport() {
 		}
 	}
 
+	// A document's reading order (its own `sequence`) naming no real note.
+	for (const note of noteEntries) {
+		const { unresolved } = orderNotes(note, noteEntries, []);
+		for (const missing of unresolved) {
+			brokenSequences.push({ topic: note.id, missing, document: true });
+		}
+	}
+
 	const brokenParents = unresolvedParents(topicEntries);
 	const untopiced = untopicedTags(topicEntries, noteEntries);
 	const uncitedTargets = unresolvedCites(noteEntries);
@@ -113,8 +122,8 @@ function printReport({
 	for (const edge of brokenLinks) {
 		console.log(`${edge.source} -> ${edge.target}`);
 	}
-	for (const { topic, missing } of brokenSequences) {
-		console.log(`topic:${topic} -> ${missing} (sequence, broken)`);
+	for (const { topic, missing, document } of brokenSequences) {
+		console.log(`${document ? 'document' : 'topic'}:${topic} -> ${missing} (sequence, broken)`);
 	}
 	for (const { id, parent } of brokenParents) {
 		console.log(`topic:${id} -> ${parent} (parent)`);

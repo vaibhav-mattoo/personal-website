@@ -1,7 +1,8 @@
 ---
 export type SequenceEntry = {
-	topicId: string;
-	topicTitle: string;
+	/** What the sequence belongs to — a topic page, or a document's page. */
+	href: string;
+	title: string;
 	position: number;
 	total: number;
 	prev?: { id: string; title: string };
@@ -21,8 +22,8 @@ const { sequences } = Astro.props;
 			{sequences.map((seq) => (
 				<div class="sequence-nav__item">
 					<div class="sequence-nav__head">
-						<a class="sequence-nav__topic" href={`/notes/topics/${seq.topicId}/`}>
-							{seq.topicTitle}
+						<a class="sequence-nav__topic" href={seq.href}>
+							{seq.title}
 						</a>
 						<span class="sequence-nav__part">
 							Part {seq.position} of {seq.total}

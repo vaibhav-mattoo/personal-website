@@ -21,6 +21,8 @@ export type VaultEntry = LinkEntry & {
 	code?: string;
 	bibkey?: string;
 	suggestedBy?: string;
+	/** Reading order of note ids (see content.config.ts). */
+	sequence: string[];
 
 	/** Past this date, the note's /s/<share>/ page stops being built. */
 	shareUntil?: Date;
@@ -62,6 +64,7 @@ async function loadVault(): Promise<Vault> {
 		code: note.data.code,
 		bibkey: note.data.bibkey,
 		suggestedBy: note.data.suggestedBy,
+		sequence: note.data.sequence,
 		share: note.data.share,
 		shareUntil: note.data.shareUntil,
 	}));
