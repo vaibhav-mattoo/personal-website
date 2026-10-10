@@ -132,6 +132,9 @@
 }
 
 .prose :not(pre) > code {
+	/* Long unbroken tokens (hashes, bit strings) wrap instead of pushing the
+	   page sideways on narrow screens. */
+	overflow-wrap: anywhere;
 	font-family: var(--font-display);
 	font-size: 0.85em;
 	padding: 0.15em 0.35em;
@@ -387,6 +390,15 @@
 	font-size: 0.9rem;
 	color: var(--muted);
 	font-style: italic;
+}
+
+/* Display math wider than the column (common on phones) scrolls inside its
+   own box instead of pushing the whole page sideways. The vertical padding
+   keeps tall fractions/limits from being clipped by overflow. */
+.prose .katex-display {
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: 0.25em 0;
 }
 
 /* ```plot blocks — static SVG rendered at build time by
