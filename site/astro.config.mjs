@@ -94,8 +94,8 @@ export default defineConfig({
 							for (const edge of brokenLinks) {
 								console.warn(`  ${edge.source} -> ${edge.target}`);
 							}
-							for (const { topic, missing } of brokenSequences) {
-								console.warn(`  topic:${topic} -> ${missing} (sequence, broken)`);
+							for (const { topic, missing, document } of brokenSequences) {
+								console.warn(`  ${document ? 'document' : 'topic'}:${topic} -> ${missing} (sequence, broken)`);
 							}
 							for (const { id, parent } of brokenParents) {
 								console.warn(`  topic:${id} -> ${parent} (parent)`);

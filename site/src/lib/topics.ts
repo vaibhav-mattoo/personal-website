@@ -27,6 +27,12 @@ export type NoteEntry = {
 	tags: string[];
 	date: Date;
 	summary?: string;
+	/** The note's `kind` — topic pages list `document`s in their own section. */
+	kind?: string;
+	/** A document's reading order (note ids), for its "n notes in order" count. */
+	sequence?: string[];
+	/** A document's external link (kind: 'document' requires one). */
+	url?: string;
 };
 
 export type TopicNode = {

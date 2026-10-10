@@ -1,0 +1,94 @@
+---
+import type { NoteEntry } from '../lib/topics';
+
+interface Props {
+	/** A document's `sequence`, resolved to public notes, in reading order. */
+	notes: NoteEntry[];
+}
+
+const { notes } = Astro.props;
+---
+
+{
+	notes.length > 0 && (
+		<section class="reading-order" aria-labelledby="reading-order-title">
+			<h2 class="reading-order__title" id="reading-order-title">
+				Reading order
+			</h2>
+			<ol class="reading-order__list">
+				{notes.map((note, i) => (
+					<li>
+						<a href={`/notes/${note.id}/`}>
+							<span class="reading-order__index tabular-nums">{i + 1}</span>
+							<span class="reading-order__body">
+								<span class="reading-order__note">{note.title}</span>
+								{note.summary && <span class="reading-order__summary">{note.summary}</span>}
+							</span>
+						</a>
+					</li>
+				))}
+			</ol>
+		</section>
+	)
+}
+
+<style>
+	.reading-order {
+		margin: 2.5rem 0 1rem;
+		padding-top: 2rem;
+		border-top: 1px solid var(--border);
+	}
+
+	.reading-order__title {
+		margin: 0 0 0.75rem;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		color: var(--muted);
+	}
+
+	.reading-order__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.reading-order__list a {
+		display: flex;
+		gap: var(--s-4);
+		align-items: baseline;
+		padding: 0.6rem 0;
+		color: var(--fg);
+		text-decoration: none;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.reading-order__index {
+		flex: none;
+		min-width: 1.75rem;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--accent);
+		text-align: right;
+	}
+
+	.reading-order__body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		min-width: 0;
+	}
+
+	.reading-order__note {
+		font-weight: 600;
+	}
+
+	.reading-order__summary {
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.reading-order__list a:hover .reading-order__note {
+		color: var(--accent);
+	}
+</style>

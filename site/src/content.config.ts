@@ -66,6 +66,11 @@ const notes = defineCollection({
 			// note; an unresolved one is reported informationally, not broken,
 			// since citing a paper with no note yet is the normal case.
 			cites: z.array(z.string()).default([]),
+			// Reading order of note ids — mainly for kind: 'document' (a book's
+			// notes in chapter order). Same idea as a topic's `sequence`: the
+			// document page lists them in this order, and each listed note gets
+			// "Part n of N" prev/next navigation back to the document.
+			sequence: z.array(z.string()).default([]),
 			suggestedBy: z.string().optional(),
 		})
 		.superRefine((data, ctx) => {

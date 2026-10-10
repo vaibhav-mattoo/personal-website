@@ -21,6 +21,9 @@ async function loadNoteEntries(): Promise<NoteEntry[]> {
 			tags: e.tags,
 			date: e.date,
 			summary: e.summary,
+			kind: e.kind,
+			sequence: e.sequence,
+			url: e.url,
 		}));
 	}
 	return cachedNotes;

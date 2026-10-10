@@ -30,7 +30,16 @@ const childTopics = node.children.filter((child) => !child.hidden);
 // renders in that position even if it isn't tagged into the topic (allNotes
 // covers that case; `node.notes` alone would silently drop it).
 const allNotes = await getPublicNoteEntries();
-const { sequenced, rest } = orderNotes(node, allNotes, node.notes);
+// Documents (books, annotated PDFs — kind: 'document') get their own section
+// above the notes rather than being mixed into the note list.
+const documents = node.notes
+	.filter((n) => n.kind === 'document')
+	.sort((a, b) => a.title.localeCompare(b.title));
+const { sequenced, rest } = orderNotes(
+	node,
+	allNotes,
+	node.notes.filter((n) => n.kind !== 'document'),
+);
 
 // Only a real topic file has a body worth rendering — synthesized nodes
 // (a tag with no matching topic file) have nothing to render here, per spec:
@@ -93,6 +102,32 @@ if (!node.synthesized) {
 	}
 
 	{
+		documents.length > 0 && (
+			<section class="section">
+				<h2>Documents</h2>
+				<ul class="list doc-list">
+					{documents.map((doc) => (
+						<li>
+							<a href={`/notes/${doc.id}/`}>
+								<span class="list__title">{doc.title}</span>
+								{doc.summary && <span class="list__summary">{doc.summary}</span>}
+								{(doc.sequence?.length ?? 0) > 0 && (
+									<span class="list__date">{doc.sequence!.length} notes in reading order</span>
+								)}
+							</a>
+							{doc.url && (
+								<a class="doc-list__open" href={doc.url} target="_blank" rel="noopener">
+									Open ↗
+								</a>
+							)}
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
+	{
 		sequenced.length > 0 && (
 			<section class="section">
 				<h2>In order</h2>
@@ -135,7 +170,7 @@ if (!node.synthesized) {
 	}
 
 	{
-		sequenced.length === 0 && rest.length === 0 && (
+		sequenced.length === 0 && rest.length === 0 && documents.length === 0 && (
 			<p class="empty">No notes tagged with this topic yet.</p>
 		)
 	}
@@ -290,6 +325,33 @@ if (!node.synthesized) {
 	.list__summary {
 		font-family: var(--font-body);
 		color: var(--muted);
+	}
+	/* Documents: the row links to the document's page (its reading order);
+	   a small separate link opens the document itself. */
+	.doc-list li {
+		display: flex;
+		align-items: baseline;
+		gap: var(--s-4);
+		border-bottom: 1px solid var(--border);
+	}
+	.doc-list li > a:first-child {
+		flex: 1;
+		min-width: 0;
+		border-bottom: 0;
+	}
+	.doc-list .doc-list__open {
+		display: inline;
+		padding: 0;
+		flex: none;
+		font-family: var(--font-display);
+		font-size: 0.85rem;
+		color: var(--muted);
+		text-decoration: none;
+		border-bottom: 1px dotted var(--muted);
+	}
+	.doc-list .doc-list__open:hover {
+		color: var(--accent);
+		border-bottom-color: var(--accent);
 	}
 	.empty {
 		color: var(--muted);
