@@ -12,6 +12,8 @@
 // this only ever rewrites `text` node children, and code nodes are leaves of
 // a different type.
 
+import katex from 'katex';
+
 const WIKILINK_PATTERN = /\[\[([^\]]+)\]\]/g;
 
 function parseWikilinkInner(inner) {
@@ -48,13 +50,116 @@ function headingSlug(text) {
 		.replace(/ /g, '-');
 }
 
+const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#x27;': "'", '&#39;': "'" };
+
+/** The text a heading's `$…$` math contributes once rendered: Astro builds
+ *  heading ids from the heading's text *after* rehype-katex, which includes
+ *  KaTeX's MathML, its TeX annotation and its HTML rendering. */
+function renderedMathText(tex) {
+	return katex
+		.renderToString(tex, { throwOnError: false })
+		.replace(/<[^>]*>/g, '')
+		.replace(/&(?:amp|lt|gt|quot|#x27|#39);/g, (e) => ENTITIES[e]);
+}
+
+/** Heading text as written in a link (math as `$…$`) → that heading's id. */
+function anchorSlug(anchor) {
+	return headingSlug(anchor.replace(/\$([^$]+)\$/g, (_, tex) => renderedMathText(tex)));
+}
+
 function wikilinkHref(target, anchor) {
 	// `#^block-id` (Obsidian block reference, see remark-block-ids.mjs) is an
 	// element id already; anything else is heading text to slug.
-	const hash = !anchor ? '' : anchor.startsWith('^') ? `#${anchor.slice(1)}` : `#${headingSlug(anchor)}`;
+	const hash = !anchor ? '' : anchor.startsWith('^') ? `#${anchor.slice(1)}` : `#${anchorSlug(anchor)}`;
 	// `[[#Heading]]` links within the current note.
 	if (!target) return hash || '#';
 	return `/notes/${target}/${hash}`;
+}
+
+function wikilinkNode(target, anchor, children) {
+	return {
+		type: 'link',
+		url: wikilinkHref(target, anchor),
+		data: {
+			hProperties: {
+				className: ['wikilink'],
+				'data-wikilink-target': target,
+			},
+		},
+		children,
+	};
+}
+
+/**
+ * A wikilink containing inline syntax reaches this plugin split across
+ * several nodes, because the markdown parser has already turned it into
+ * nodes of its own: `*Elements*` in an alias becomes an emphasis node, and
+ * `$h$` anywhere (math is parsed with the markdown) becomes an inlineMath
+ * node. Joins each such run back into one link. The target (before `|`) may
+ * contain text and math, which is serialized back to source (`$h$`) so the
+ * anchor can be slugged; the alias keeps its nodes, so formatting and math
+ * still render inside the link. Anything else in the target (e.g. emphasis)
+ * means it isn't a wikilink we understand, and the run is left untouched.
+ */
+function joinSplitWikilinks(children) {
+	const out = [];
+	for (let i = 0; i < children.length; i++) {
+		const start = children[i];
+		const open = start.type === 'text' ? start.value.lastIndexOf('[[') : -1;
+		const closeAt = open === -1 || start.value.indexOf(']]', open) !== -1
+			? -1
+			: children.findIndex((c, k) => k > i && c.type === 'text' && c.value.includes(']]'));
+		if (closeAt === -1) {
+			out.push(start);
+			continue;
+		}
+		const end = children[closeAt];
+		const close = end.value.indexOf(']]');
+		const inner = [
+			{ type: 'text', value: start.value.slice(open + 2) },
+			...children.slice(i + 1, closeAt),
+			{ type: 'text', value: end.value.slice(0, close) },
+		];
+
+		// Split `inner` at the first `|` into target source and alias nodes.
+		let targetSource = '';
+		let aliasNodes = null;
+		let ok = true;
+		for (const node of inner) {
+			if (aliasNodes) {
+				aliasNodes.push(node);
+			} else if (node.type === 'text') {
+				const pipe = node.value.indexOf('|');
+				if (pipe === -1) {
+					targetSource += node.value;
+				} else {
+					targetSource += node.value.slice(0, pipe);
+					aliasNodes = [{ type: 'text', value: node.value.slice(pipe + 1) }];
+				}
+			} else if (node.type === 'inlineMath') {
+				targetSource += `$${node.value}$`;
+			} else {
+				ok = false;
+				break;
+			}
+		}
+		if (!ok) {
+			out.push(start);
+			continue;
+		}
+
+		const { target, anchor } = parseWikilinkInner(targetSource);
+		const linkChildren = aliasNodes
+			? aliasNodes.filter((n) => n.type !== 'text' || n.value)
+			: [{ type: 'text', value: target || anchor }];
+		if (start.value.slice(0, open)) out.push({ type: 'text', value: start.value.slice(0, open) });
+		out.push(wikilinkNode(target, anchor, linkChildren));
+		// Whatever follows `]]` may hold further wikilinks; let the loop see it.
+		const rest = end.value.slice(close + 2);
+		if (rest) children.splice(closeAt + 1, 0, { type: 'text', value: rest });
+		i = closeAt;
+	}
+	return out;
 }
 
 function splitTextWithWikilinks(value) {
@@ -70,17 +175,7 @@ function splitTextWithWikilinks(value) {
 		}
 
 		const { target, alias, anchor } = parseWikilinkInner(match[1]);
-		nodes.push({
-			type: 'link',
-			url: wikilinkHref(target, anchor),
-			data: {
-				hProperties: {
-					className: ['wikilink'],
-					'data-wikilink-target': target,
-				},
-			},
-			children: [{ type: 'text', value: alias || target || anchor }],
-		});
+		nodes.push(wikilinkNode(target, anchor, [{ type: 'text', value: alias || target || anchor }]));
 
 		lastIndex = match.index + match[0].length;
 		match = WIKILINK_PATTERN.exec(value);
@@ -97,7 +192,7 @@ function transformChildren(node) {
 	if (!node || !Array.isArray(node.children)) return;
 
 	const result = [];
-	for (const child of node.children) {
+	for (const child of joinSplitWikilinks(node.children)) {
 		if (child.type === 'text' && typeof child.value === 'string' && child.value.includes('[[')) {
 			const split = splitTextWithWikilinks(child.value);
 			if (split) {
@@ -113,7 +208,7 @@ function transformChildren(node) {
 	node.children = result;
 }
 
-export { headingSlug, wikilinkHref };
+export { anchorSlug, headingSlug, wikilinkHref };
 
 export default function remarkWikilink() {
 	return (tree) => {
