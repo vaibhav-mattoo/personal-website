@@ -511,6 +511,100 @@
 	font-size: var(--text-sm);
 }
 
+/* ```bits blocks — codeword bit layouts rendered by plugins/remark-bits.mjs.
+   Each field (flag, index, …) takes one of the --plot-* colors. */
+.prose .bits {
+	margin: 1.5rem 0;
+	padding: var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	background: var(--surface);
+}
+
+.prose .bits__rows {
+	display: flex;
+	flex-direction: column;
+	gap: var(--s-4);
+}
+
+.prose .bits__label {
+	margin-bottom: var(--s-2);
+	font-family: var(--font-body);
+	font-size: var(--text-sm);
+	color: var(--fg);
+}
+
+.prose .bits__fields {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2);
+	align-items: flex-start;
+}
+
+.prose .bits__field {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--s-1);
+	--field-color: var(--plot-1);
+}
+
+.prose .bits__field--2 {
+	--field-color: var(--plot-2);
+}
+
+.prose .bits__field--3 {
+	--field-color: var(--plot-3);
+}
+
+.prose .bits__field--4 {
+	--field-color: var(--plot-4);
+}
+
+.prose .bits__cells {
+	display: inline-flex;
+	border: 1.5px solid var(--field-color);
+	border-radius: var(--radius);
+	overflow: hidden;
+	background: color-mix(in srgb, var(--field-color) 14%, var(--bg));
+}
+
+.prose .bits__cell {
+	min-width: 1.6em;
+	padding: var(--s-1) 0;
+	text-align: center;
+	font-family: var(--font-display);
+	font-size: var(--text-base);
+	font-weight: 600;
+	color: var(--fg);
+}
+
+.prose .bits__cell + .bits__cell {
+	border-left: 1px solid color-mix(in srgb, var(--field-color) 45%, transparent);
+}
+
+.prose .bits__name {
+	font-family: var(--font-display);
+	font-size: var(--text-xs);
+	color: var(--muted);
+}
+
+.prose .bits figcaption {
+	margin-top: var(--s-3);
+	text-align: center;
+	font-family: var(--font-body);
+	font-size: 0.9rem;
+	color: var(--muted);
+	font-style: italic;
+}
+
+.prose .bits--error {
+	border-color: var(--callout-caution);
+	color: var(--callout-caution);
+	font-family: var(--font-display);
+	font-size: var(--text-sm);
+}
+
 .prose .heading-anchor {
 	margin-left: 0.5rem;
 	color: var(--muted);
