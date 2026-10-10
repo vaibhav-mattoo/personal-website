@@ -153,6 +153,13 @@ const description = `${entries.length} note${entries.length === 1 ? '' : 's'} ac
 	   --w-content container, up to --w-wide, while staying centered —
 	   the classic full-bleed-from-a-centered-container trick. Everything
 	   else on the page stays at the narrower measure. */
+	/* 100vw includes a classic (non-overlay) scrollbar, so the breakout pokes
+	   a few px past the visible page and the whole page scrolls sideways.
+	   Clip that sliver — it falls inside the breakout's own side padding. */
+	:global(.shell__main) {
+		overflow-x: clip;
+	}
+
 	.graph-breakout {
 		width: 100vw;
 		max-width: var(--w-wide);
