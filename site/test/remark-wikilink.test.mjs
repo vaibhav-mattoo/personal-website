@@ -42,3 +42,11 @@ test('same-note wikilink without alias shows the heading text', () => {
 	assert.equal(link.url, '#open-questions');
 	assert.equal(link.children[0].value, 'Open questions');
 });
+
+test('wikilinkHref passes #^block-id through as an element id', () => {
+	assert.equal(
+		wikilinkHref('entropy-mutual-information', '^whole-bit-trap'),
+		'/notes/entropy-mutual-information/#whole-bit-trap',
+	);
+	assert.equal(wikilinkHref('', '^my-plot'), '#my-plot');
+});

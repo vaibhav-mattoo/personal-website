@@ -49,7 +49,9 @@ function headingSlug(text) {
 }
 
 function wikilinkHref(target, anchor) {
-	const hash = anchor ? `#${headingSlug(anchor)}` : '';
+	// `#^block-id` (Obsidian block reference, see remark-block-ids.mjs) is an
+	// element id already; anything else is heading text to slug.
+	const hash = !anchor ? '' : anchor.startsWith('^') ? `#${anchor.slice(1)}` : `#${headingSlug(anchor)}`;
 	// `[[#Heading]]` links within the current note.
 	if (!target) return hash || '#';
 	return `/notes/${target}/${hash}`;

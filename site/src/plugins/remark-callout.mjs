@@ -216,6 +216,8 @@ function transformCallouts(node, options) {
 
 	const hProperties = { className, 'data-callout': canonical.toLowerCase() };
 	if (fold === 'open') hProperties.open = true;
+	// An Obsidian `^block-id` on the callout (remark-block-ids.mjs).
+	if (node.data?.hProperties?.id) hProperties.id = node.data.hProperties.id;
 
 	node.data = { ...node.data, hName: fold === 'static' ? 'div' : 'details', hProperties };
 }

@@ -26,6 +26,12 @@
 	scroll-margin-top: 6rem;
 }
 
+/* Block-reference targets (`[[note#^id]]`, see plugins/remark-block-ids.mjs)
+   clear the sticky toolbar the same way headings do. */
+.prose [id] {
+	scroll-margin-top: 6rem;
+}
+
 .prose h2 {
 	margin: 2.5rem 0 0.75rem;
 	font-size: 1.5rem;
