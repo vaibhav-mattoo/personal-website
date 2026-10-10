@@ -12,6 +12,7 @@ import remarkWikilink from './src/plugins/remark-wikilink.mjs';
 import remarkCallout from './src/plugins/remark-callout.mjs';
 import remarkMathDisplay from './src/plugins/remark-math-display.mjs';
 import remarkPlot from './src/plugins/remark-plot.mjs';
+import remarkBlockIds from './src/plugins/remark-block-ids.mjs';
 import { runLinkReport } from './scripts/link-report.mjs';
 
 import react from '@astrojs/react';
@@ -133,7 +134,7 @@ export default defineConfig({
 		},
 	],
 	markdown: {
-		remarkPlugins: [remarkPlot, remarkWikilink, remarkCallout, remarkMath, remarkMathDisplay],
+		remarkPlugins: [remarkBlockIds, remarkPlot, remarkWikilink, remarkCallout, remarkMath, remarkMathDisplay],
 		rehypePlugins: [
 			rehypeKatex,
 			[

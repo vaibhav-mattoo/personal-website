@@ -381,12 +381,15 @@ function renderLegend(spec) {
 	return `<ul class="plot__legend">${items}</ul>`;
 }
 
-/** Full HTML for one plot block, or a visible error box if it's invalid. */
-export function renderPlotBlock(source) {
+/** Full HTML for one plot block, or a visible error box if it's invalid.
+ *  `id` (from an Obsidian `^block-id`, see remark-block-ids.mjs) goes on the
+ *  figure so `[[note#^block-id]]` can link straight to the plot. */
+export function renderPlotBlock(source, id) {
 	try {
 		const spec = parsePlotSpec(source);
 		const caption = spec.title ? `<figcaption>${escapeXml(spec.title)}</figcaption>` : '';
-		return { html: `<figure class="plot">${renderPlotSvg(spec)}${renderLegend(spec)}${caption}</figure>` };
+		const idAttr = id ? ` id="${escapeXml(id)}"` : '';
+		return { html: `<figure class="plot"${idAttr}>${renderPlotSvg(spec)}${renderLegend(spec)}${caption}</figure>` };
 	} catch (err) {
 		return {
 			error: err.message,
@@ -401,7 +404,7 @@ export default function remarkPlot() {
 			if (!Array.isArray(node.children)) return;
 			node.children = node.children.map((child) => {
 				if (child.type === 'code' && child.lang === 'plot') {
-					const { html, error } = renderPlotBlock(child.value);
+					const { html, error } = renderPlotBlock(child.value, child.data?.hProperties?.id);
 					if (error) {
 						const line = child.position?.start?.line;
 						console.warn(`[plot] ${file?.path ?? 'note'}${line ? `:${line}` : ''}: ${error}`);
