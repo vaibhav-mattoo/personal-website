@@ -15,10 +15,18 @@
 	/* Right edge of the fixed top-left toolbar (menu, theme, mode, handle)
 	   plus breathing room — wide note layouts never start text left of this. */
 	--toolbar-clear: 19rem;
+	/* Notch / status bar / home indicator — non-zero only when the page
+	   runs edge to edge (viewport-fit=cover), e.g. opened from the iPhone
+	   home screen. */
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-left: env(safe-area-inset-left, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
 	--toolbar-h: calc(var(--toolbar-top) + var(--toolbar-btn));
-	/* Bottom padding matches --toolbar-top so the toolbar row sits centered
-	   (not just top-anchored) inside the .toolbar-backdrop band. */
-	--docs-sticky-top: calc(var(--toolbar-h) + var(--toolbar-top));
+	/* Bottom padding matches the toolbar's own gap above it (not the
+	   notch) so the toolbar row sits centered under the status bar inside
+	   the .toolbar-backdrop band. */
+	--docs-sticky-top: calc(var(--toolbar-h) + var(--toolbar-top) - var(--safe-top));
 	--toc-popover-h: 2.5rem;
 
 	/* Spacing — 4px base grid. Use these instead of ad-hoc rem/px margins
