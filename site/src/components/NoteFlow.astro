@@ -1,0 +1,130 @@
+---
+import katex from 'katex';
+import { headingForTerm, type FlowHeading, type FlowStep } from '../lib/noteFlow';
+
+interface Props {
+	steps: FlowStep[];
+	headings: FlowHeading[];
+}
+
+const { steps, headings } = Astro.props;
+
+function escapeHtml(s: string): string {
+	return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+/** Plain text with `$…$` spans rendered as KaTeX. */
+function withMath(s: string): string {
+	return s
+		.split(/(\$[^$]+\$)/)
+		.map((part) =>
+			part.length > 2 && part.startsWith('$') && part.endsWith('$')
+				? katex.renderToString(part.slice(1, -1), { throwOnError: false })
+				: escapeHtml(part),
+		)
+		.join('');
+}
+
+const items = steps.map((step) => ({
+	term: withMath(step.term),
+	text: withMath(step.text),
+	href: (() => {
+		const heading = headingForTerm(step.term, headings);
+		return heading ? `#${heading.slug}` : undefined;
+	})(),
+}));
+---
+
+{
+	items.length > 0 && (
+		<nav class="flow" aria-labelledby="flow-title">
+			<p class="flow__title" id="flow-title">
+				What this note builds
+			</p>
+			<ol class="flow__steps">
+				{items.map((item) => {
+					const body = (
+						<>
+							<span class="flow__term" set:html={item.term} />
+							{item.text && <span class="flow__text" set:html={item.text} />}
+						</>
+					);
+					return <li>{item.href ? <a href={item.href}>{body}</a> : <span class="flow__row">{body}</span>}</li>;
+				})}
+			</ol>
+		</nav>
+	)
+}
+
+<style>
+	.flow {
+		margin: 0 0 1rem;
+	}
+
+	.flow__title {
+		margin: 0 0 0.5rem;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	/* A vertical rail: one dot per step, joined by a line. */
+	.flow__steps {
+		position: relative;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.flow__steps li {
+		position: relative;
+		padding-left: 1.25rem;
+	}
+
+	.flow__steps li::before {
+		content: '';
+		position: absolute;
+		left: 0.2rem;
+		/* Midline of the first text line: row padding + half its line height. */
+		top: calc(0.2rem + 0.75em);
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 50%;
+		background: var(--accent);
+		transform: translateY(-50%);
+	}
+
+	.flow__steps li:not(:last-child)::after {
+		content: '';
+		position: absolute;
+		left: calc(0.425rem - 0.5px);
+		top: calc(0.2rem + 0.75em + 0.35rem);
+		bottom: calc(0.15rem - 0.75em);
+		border-left: 1px solid var(--border);
+	}
+
+	.flow__steps a,
+	.flow__row {
+		display: block;
+		padding: 0.2rem 0;
+		line-height: 1.5;
+		color: var(--fg);
+		text-decoration: none;
+	}
+
+	.flow__term {
+		font-weight: 600;
+	}
+
+	.flow__text {
+		color: var(--muted);
+	}
+
+	.flow__text::before {
+		content: ' — ';
+	}
+
+	.flow__steps a:hover .flow__term {
+		color: var(--accent);
+	}
+</style>

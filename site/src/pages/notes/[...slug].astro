@@ -8,6 +8,7 @@ import ReadingProgress from '../../components/ReadingProgress.astro';
 import Backlinks from '../../components/Backlinks.astro';
 import Comments from '../../components/Comments.astro';
 import SequenceNav, { type SequenceEntry } from '../../components/SequenceNav.astro';
+import NoteFlow from '../../components/NoteFlow.astro';
 import ReadingOrder from '../../components/ReadingOrder.astro';
 import { getBacklinks } from '../../lib/backlinks';
 import { getPublicVault } from '../../lib/vault';
@@ -120,7 +121,11 @@ const localGraphData = neighborhood(
 		<article class="docs__main" data-pagefind-body>
 			<header class="note-head">
 				<h1>{note.data.title}</h1>
-				{note.data.summary && <p class="note-head__summary">{note.data.summary}</p>}
+				{note.data.flow.length > 0 ? (
+					<NoteFlow steps={note.data.flow} headings={headings} />
+				) : (
+					note.data.summary && <p class="note-head__summary">{note.data.summary}</p>
+				)}
 				<NoteMeta date={note.data.date} minutes={minutes} words={words} />
 				{
 					note.data.kind === 'document' && note.data.url && (

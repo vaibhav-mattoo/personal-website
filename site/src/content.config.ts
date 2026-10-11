@@ -71,6 +71,20 @@ const notes = defineCollection({
 			// document page lists them in this order, and each listed note gets
 			// "Part n of N" prev/next navigation back to the document.
 			sequence: z.array(z.string()).default([]),
+			// What the note builds up, step by step — shown under the title in
+			// place of `summary`. Each step is `- Term: what it adds` (or just
+			// `- Term`); a step links to the first heading starting with its
+			// term. `$…$` in either part renders as math.
+			flow: z
+				.array(z.union([z.string(), z.record(z.string(), z.string().nullable())]))
+				.default([])
+				.transform((steps) =>
+					steps.map((step) => {
+						if (typeof step === 'string') return { term: step, text: '' };
+						const [[term, text]] = Object.entries(step);
+						return { term, text: text ?? '' };
+					}),
+				),
 			suggestedBy: z.string().optional(),
 		})
 		.superRefine((data, ctx) => {
