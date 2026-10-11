@@ -81,6 +81,29 @@ function edgeDash(type: string): number[] | null {
 	}
 }
 
+/** A dash pattern repeating in fewer screen pixels than this reads as a
+ *  faint solid line, so it's drawn as one (see screenDash). */
+const MIN_DASH_PERIOD_PX = 6;
+
+/**
+ * The dash pattern to actually draw at zoom `k`, plus the opacity to draw
+ * it at. Zoomed out, patterns shrink below a pixel: they look like a faint
+ * solid line but stroking thousands of sub-pixel dashes made every frame
+ * several times slower. So below MIN_DASH_PERIOD_PX the edge is drawn
+ * solid, faded by the pattern's ink fraction to look the same.
+ */
+function screenDash(type: string, k: number): { dash: number[] | null; ink: number } {
+	const dash = edgeDash(type);
+	if (!dash) return { dash: null, ink: 1 };
+	let on = 0;
+	let period = 0;
+	dash.forEach((len, i) => {
+		period += len;
+		if (i % 2 === 0) on += len;
+	});
+	return period * k >= MIN_DASH_PERIOD_PX ? { dash, ink: 1 } : { dash: null, ink: on / period };
+}
+
 /**
  * Per-top-level-topic OKLCH hue, evenly spaced around the wheel starting
  * at the site's own current --accent hue (read at call time, so it tracks
@@ -120,6 +143,28 @@ function readThemeColors() {
 }
 
 type ThemeColors = ReturnType<typeof readThemeColors>;
+
+/**
+ * `color` at `alpha` opacity as a plain rgba() string. Resolved through a
+ * 1px canvas rather than handing the canvas color-mix(), which not every
+ * browser's canvas accepts, and cached: link colors are asked for per link
+ * on every frame.
+ */
+const fadeCache = new Map<string, string>();
+function fade(color: string, alpha: number): string {
+	if (alpha >= 1) return color;
+	const key = `${color}|${alpha}`;
+	let out = fadeCache.get(key);
+	if (out) return out;
+	const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+	if (!ctx) return color;
+	ctx.fillStyle = color;
+	ctx.fillRect(0, 0, 1, 1);
+	const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+	out = `rgba(${r}, ${g}, ${b}, ${((a / 255) * alpha).toFixed(3)})`;
+	fadeCache.set(key, out);
+	return out;
+}
 
 function drawShape(
 	ctx: CanvasRenderingContext2D,
@@ -395,6 +440,33 @@ function radialSpreadForce(targetsRef: { current: Map<string, RadialTarget> }) {
 }
 
 /**
+ * force-graph sizes both its canvases (the visible one and the hidden
+ * hit-test one, which is CPU-rendered) by window.devicePixelRatio, read on
+ * every frame. At 3x — current iPhones — that's 9x the pixels of 1x and
+ * made zooming and panning crawl, with no visible gain over 2x for thin
+ * lines and labels. While a graph is mounted, cap what it sees at 2x.
+ * Nothing else on these pages reads devicePixelRatio from JS.
+ */
+const MAX_GRAPH_PIXEL_RATIO = 2;
+let pixelRatioCaps = 0;
+
+function capPixelRatio(): () => void {
+	const own = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
+	if (pixelRatioCaps++ === 0 && window.devicePixelRatio > MAX_GRAPH_PIXEL_RATIO) {
+		const real = window.devicePixelRatio;
+		Object.defineProperty(window, 'devicePixelRatio', {
+			configurable: true,
+			get: () => Math.min(real, MAX_GRAPH_PIXEL_RATIO),
+		});
+	}
+	return () => {
+		if (--pixelRatioCaps > 0) return;
+		if (own) Object.defineProperty(window, 'devicePixelRatio', own);
+		else delete (window as { devicePixelRatio?: number }).devicePixelRatio;
+	};
+}
+
+/**
  * Replaces force-graph's built-in zoomToFit, which only measures node
  * *positions* — topic nodes render as text well outside their tiny point
  * radius, so the built-in fit crops labels no matter how much padding is
@@ -514,6 +586,11 @@ export default function Graph({
 	const highlightRef = useRef<string | undefined>(highlightQuery?.trim().toLowerCase() || undefined);
 	const highlightIdsRef = useRef<Set<string>>(new Set(highlightIds));
 	const hoveredTopicRef = useRef<string | null>(null);
+	// What stays undimmed while something is hovered (or, on touch, last
+	// tapped): computed once per hover change, since the paint callbacks
+	// below run per node and per link on every frame.
+	const hoverActiveRef = useRef<Set<string> | null>(null);
+	const zoomRef = useRef(1);
 	const timelineRef = useRef(timeline);
 	const zoomedOnceRef = useRef(false);
 	const [interacted, setInteracted] = useState(false);
@@ -553,6 +630,8 @@ export default function Graph({
 
 	useEffect(() => {
 		graphDataRef.current = graphData;
+		hoveredTopicRef.current = null;
+		hoverActiveRef.current = null;
 		fgRef.current?.graphData({ nodes: graphData.nodes, links: graphData.edges });
 		relayout(fgRef.current);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -582,6 +661,8 @@ export default function Graph({
 		let themeObserver: MutationObserver | null = null;
 		let gestureCleanup: (() => void) | null = null;
 
+		const releasePixelRatio = capPixelRatio();
+
 		import('force-graph').then(({ default: ForceGraph }) => {
 			if (disposed) return;
 
@@ -597,15 +678,15 @@ export default function Graph({
 			// subtree dims to ~25%; hovering a note dims everything outside
 			// its direct connections. No hover active -> normal fade rules.
 			const dimAlpha = (node: SimNode): number | null => {
-				const hovered = hoveredTopicRef.current;
-				if (!hovered) return null;
-				const hoveredNode = graphDataRef.current.nodes.find((n) => n.id === hovered);
+				const active = hoverActiveRef.current;
+				return !active || active.has(node.id) ? null : 0.25;
+			};
+			const activeSetFor = (id: string | null): Set<string> | null => {
+				const hoveredNode = id ? graphDataRef.current.nodes.find((n) => n.id === id) : undefined;
 				if (!hoveredNode) return null;
-				const activeSet =
-					hoveredNode.kind === 'topic'
-						? subtreeOf(graphDataRef.current.nodes, hovered)
-						: neighborsOf(graphDataRef.current.edges, hovered);
-				return activeSet.has(node.id) ? null : 0.25;
+				return hoveredNode.kind === 'topic'
+					? subtreeOf(graphDataRef.current.nodes, hoveredNode.id)
+					: neighborsOf(graphDataRef.current.edges, hoveredNode.id);
 			};
 
 			fg = new ForceGraph<SimNode, GraphEdge>(el)
@@ -617,22 +698,19 @@ export default function Graph({
 				.linkWidth(1)
 				.linkCurvature(0.15)
 				.linkColor((edge) => {
-					const hovered = hoveredTopicRef.current;
-					if (!hovered) return colorsRef.current.border;
-					const hoveredNode = graphDataRef.current.nodes.find((n) => n.id === hovered);
-					if (!hoveredNode) return colorsRef.current.border;
-					const activeSet =
-						hoveredNode.kind === 'topic'
-							? subtreeOf(graphDataRef.current.nodes, hovered)
-							: neighborsOf(graphDataRef.current.edges, hovered);
+					const { ink } = screenDash(edge.type, zoomRef.current);
+					const activeSet = hoverActiveRef.current;
+					const border = colorsRef.current.border;
+					if (!activeSet) return fade(border, ink);
 					const s = typeof edge.source === 'string' ? edge.source : (edge.source as SimNode).id;
 					const t = typeof edge.target === 'string' ? edge.target : (edge.target as SimNode).id;
 					const active = activeSet.has(s) && activeSet.has(t);
-					return active
-						? colorsRef.current.border
-						: `color-mix(in srgb, ${colorsRef.current.border} 25%, transparent)`;
+					return fade(border, (active ? 1 : 0.25) * ink);
 				})
-				.linkLineDash((edge) => edgeDash(edge.type))
+				.linkLineDash((edge) => screenDash(edge.type, zoomRef.current).dash)
+				.onZoom(({ k }) => {
+					zoomRef.current = k;
+				})
 				.nodeColor(nodeColor)
 				.nodeLabel((node) => {
 					const title = node.title.replace(/</g, '&lt;');
@@ -645,6 +723,7 @@ export default function Graph({
 					const next = node ? node.id : null;
 					if (hoveredTopicRef.current !== next) {
 						hoveredTopicRef.current = next;
+						hoverActiveRef.current = activeSetFor(next);
 						fg?.nodeColor(fg.nodeColor());
 					}
 				})
@@ -699,16 +778,20 @@ export default function Graph({
 					ctx.fillStyle = color;
 
 					if (node.kind === 'topic') {
-						const size = topicFontSize(node);
-						ctx.font = `${size}px ${colorsRef.current.fontFamily}`;
-						const width = ctx.measureText(node.title).width;
-						ctx.fillRect(x - width / 2 - 3, y - size / 2 - 2, width + 6, size + 4);
+						// Measured once per layout (relayout) — measuring text
+						// here would redo it on every hit-test repaint.
+						const extent = extentsRef.current.get(node.id);
+						if (extent) ctx.fillRect(x - extent.halfW, y - extent.halfH, extent.halfW * 2, extent.halfH * 2);
 						return;
 					}
 
 					drawShape(ctx, shapeForKind(node.kind), x, y, nodeRadius(node) + 2);
 					ctx.fill();
 				})
+				// Links aren't hoverable or clickable, so keep them out of the
+				// hit-test canvas — repainting ~1,600 curves there stalled
+				// every zoom and pan.
+				.linkPointerAreaPaint(() => {})
 				.onNodeClick((node) => {
 					const href = node.kind === 'topic' ? `/notes/topics/${node.id}/` : `/notes/${node.id}/`;
 					window.location.href = href;
@@ -809,6 +892,7 @@ export default function Graph({
 			gestureCleanup?.();
 			fg?._destructor();
 			fgRef.current = null;
+			releasePixelRatio();
 		};
 		// Intentionally mount-only: graphData/highlight updates are handled by
 		// the effects above/below via the existing instance, so the simulation
