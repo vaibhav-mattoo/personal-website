@@ -19,7 +19,7 @@ const buildDate = new Date().toISOString().slice(0, 10);
 <style>
 	.footer {
 		margin-top: var(--s-12);
-		padding: var(--s-6) 0 var(--s-9);
+		padding: var(--s-6) 0 calc(var(--s-9) + var(--safe-bottom));
 		border-top: 1px solid var(--border-subtle);
 		font-family: var(--font-display);
 		font-size: var(--text-sm);

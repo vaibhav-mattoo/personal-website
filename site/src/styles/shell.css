@@ -1,10 +1,15 @@
 :root {
-	--toolbar-top: 1rem;
+	--toolbar-top: calc(1rem + var(--safe-top));
 	/* 44px hit-target minimum. --docs-sticky-top/.toolbar-backdrop below are
 	   derived from this, not hardcoded, so raising it stays self-consistent
 	   with the toolbar-band vertical-centering math. */
 	--toolbar-btn: 44px;
 	--sheet-inset-x: 0.75rem;
+}
+
+/* Keep content clear of the notch in landscape when edge to edge. */
+.shell {
+	padding-inline: var(--safe-left) var(--safe-right);
 }
 
 /* Standard page container — every non-docs page shell. Left-aligned to a
@@ -31,7 +36,7 @@
    in the .docs grid itself. */
 .shell__main {
 	flex: 1 0 auto;
-	padding-block: 4.5rem 2rem;
+	padding-block: calc(4.5rem + var(--safe-top)) 2rem;
 }
 
 .shell__main--docs {
@@ -57,8 +62,8 @@
 .toolbar {
 	position: fixed;
 	top: var(--toolbar-top);
-	left: var(--sheet-inset-x);
-	right: var(--sheet-inset-x);
+	left: calc(var(--sheet-inset-x) + var(--safe-left));
+	right: calc(var(--sheet-inset-x) + var(--safe-right));
 	z-index: 60;
 	display: flex;
 	align-items: center;
