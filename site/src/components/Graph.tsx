@@ -49,8 +49,6 @@ export interface GraphProps {
 	timeline?: boolean;
 }
 
-const MOBILE_BREAKPOINT = 720;
-
 function shapeForKind(kind: string): 'circle' | 'diamond' | 'triangle' | 'pentagon' | 'star' {
 	switch (kind) {
 		case 'concept':
@@ -261,8 +259,7 @@ function measureHalfExtents(nodes: SimNode[], fontFamily: string): Map<string, H
 function seedInitialLayout(nodes: SimNode[], extents: Map<string, HalfExtent>, usePrecomputed: boolean): void {
 	// The full graph ships positions computed at build time (lib/graphSeed.ts)
 	// — running layoutGraph here took seconds on the main thread. Subsets
-	// (a note's local graph, the mobile topics-only view) are small enough to
-	// lay out on the spot.
+	// (a note's local graph) are small enough to lay out on the spot.
 	if (usePrecomputed && nodes.every((n) => n.seed)) {
 		for (const n of nodes) {
 			n.x = n.seed!.x;
@@ -520,38 +517,18 @@ export default function Graph({
 	const timelineRef = useRef(timeline);
 	const zoomedOnceRef = useRef(false);
 	const [interacted, setInteracted] = useState(false);
-	const [isMobile, setIsMobile] = useState(false);
-
-	useEffect(() => {
-		const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
-		setIsMobile(mq.matches);
-		const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-		mq.addEventListener('change', onChange);
-		return () => mq.removeEventListener('change', onChange);
-	}, []);
-
-	// Below the mobile breakpoint, 45+ labels crammed into ~360px is just
-	// noise — collapse to top-level topics only (no notes, no subtopics),
-	// laid out the same way but with far fewer, larger, tap-friendly labels.
-	const baseData = useMemo(() => {
-		if (!isMobile) return data;
-		const topLevel = data.nodes.filter((n) => n.kind === 'topic' && n.topics.length === 1);
-		const ids = new Set(topLevel.map((n) => n.id));
-		return { nodes: topLevel, edges: data.edges.filter((e) => ids.has(e.source) && ids.has(e.target)) };
-	}, [data, isMobile]);
-
 	const graphData = useMemo(() => {
-		if (!focusId) return baseData;
-		const edgesWithBroken: Array<GraphEdge & { broken: boolean }> = baseData.edges.map((e) => ({
+		if (!focusId) return data;
+		const edgesWithBroken: Array<GraphEdge & { broken: boolean }> = data.edges.map((e) => ({
 			...e,
 			broken: false,
 		}));
-		return neighborhood({ nodes: baseData.nodes, edges: edgesWithBroken }, focusId, depth);
-	}, [baseData, focusId, depth]);
+		return neighborhood({ nodes: data.nodes, edges: edgesWithBroken }, focusId, depth);
+	}, [data, focusId, depth]);
 
 	const graphDataRef = useRef(graphData);
 	// Only the unfiltered graph matches the build-time seed layout; a focus
-	// neighborhood or the mobile subset is laid out on the client instead.
+	// neighborhood is laid out on the client instead.
 	const isFullGraphRef = useRef(true);
 	isFullGraphRef.current = graphData === data;
 
