@@ -1,0 +1,252 @@
+---
+import katex from 'katex';
+import { flowRows, headingForTerm, type FlowHeading, type FlowStep } from '../lib/noteFlow';
+
+interface Props {
+	steps: FlowStep[];
+	headings: FlowHeading[];
+}
+
+const { steps, headings } = Astro.props;
+
+function escapeHtml(s: string): string {
+	return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+/** Plain text with `$…$` spans rendered as KaTeX. */
+function withMath(s: string): string {
+	return s
+		.split(/(\$[^$]+\$)/)
+		.map((part) =>
+			part.length > 2 && part.startsWith('$') && part.endsWith('$')
+				? katex.renderToString(part.slice(1, -1), { throwOnError: false })
+				: escapeHtml(part),
+		)
+		.join('');
+}
+
+function block(step: FlowStep) {
+	const heading = headingForTerm(step.at ?? step.term, headings);
+	return {
+		term: withMath(step.term),
+		text: withMath(step.text),
+		href: heading ? `#${heading.slug}` : undefined,
+	};
+}
+
+const rows = flowRows(steps).map((row) => ({ main: block(row.step), asides: row.asides.map(block) }));
+---
+
+{
+	rows.length > 0 && (
+		<figure class="flow" aria-labelledby="flow-title">
+			<figcaption class="flow__title" id="flow-title">
+				What this note builds
+			</figcaption>
+			<ol class="flow__rows">
+				{rows.map((row, i) => {
+					const Main = row.main.href ? 'a' : 'div';
+					return (
+						<li class="flow__row">
+							<Main class="flow__block" href={row.main.href}>
+								<span class="flow__index">{String(i + 1).padStart(2, '0')}</span>
+								<span class="flow__body">
+									<span class="flow__term" set:html={row.main.term} />
+									{row.main.text && <span class="flow__text" set:html={row.main.text} />}
+								</span>
+							</Main>
+							{row.asides.length > 0 && (
+								<ul class="flow__asides" aria-label="Asides">
+									{row.asides.map((aside) => {
+										const Aside = aside.href ? 'a' : 'div';
+										return (
+											<li>
+												<Aside class="flow__block flow__block--aside" href={aside.href}>
+													<span class="flow__body">
+														<span class="flow__term" set:html={aside.term} />
+														{aside.text && <span class="flow__text" set:html={aside.text} />}
+													</span>
+												</Aside>
+											</li>
+										);
+									})}
+								</ul>
+							)}
+							{i < rows.length - 1 && <span class="flow__arrow" aria-hidden="true" />}
+						</li>
+					);
+				})}
+			</ol>
+		</figure>
+	)
+}
+
+<style>
+	/* The main line runs down the left of the blocks, through each block's
+	   step number; asides branch off to the right (or, in a narrow column,
+	   hang below their step on a dashed continuation of the line). */
+	.flow {
+		--flow-pad-x: 0.8rem;
+		--flow-index-w: 1.25rem;
+		--flow-spine-x: calc(var(--flow-pad-x) + var(--flow-index-w) / 2);
+		--flow-gap: 2rem;
+		margin: 0 0 1rem;
+		container-type: inline-size;
+	}
+
+	.flow__title {
+		margin: 0 0 0.6rem;
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.flow__rows,
+	.flow__asides {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.flow__row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.flow__block {
+		display: flex;
+		gap: 0.6rem;
+		align-items: baseline;
+		padding: 0.5rem var(--flow-pad-x);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--fg);
+		line-height: 1.45;
+		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	a.flow__block:hover {
+		border-color: var(--accent);
+	}
+
+	a.flow__block:hover .flow__term {
+		color: var(--accent);
+	}
+
+	.flow__index {
+		flex: none;
+		width: var(--flow-index-w);
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--accent);
+		text-align: center;
+	}
+
+	.flow__body {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.flow__term {
+		font-weight: 600;
+	}
+
+	.flow__text {
+		font-size: var(--text-sm);
+		color: var(--muted);
+	}
+
+	.flow__block--aside {
+		border-style: dashed;
+		background: transparent;
+	}
+
+	.flow__block--aside .flow__term {
+		font-weight: 500;
+	}
+
+	/* Narrow: asides hang under their step, joined to it by a dashed stretch
+	   of the main line. */
+	.flow__asides {
+		display: grid;
+		gap: 0.4rem;
+		margin-left: var(--flow-spine-x);
+		padding: 0.4rem 0 0 0.9rem;
+		border-left: 1px dashed var(--border);
+	}
+
+	.flow__arrow {
+		position: relative;
+		min-height: 1.1rem;
+	}
+
+	.flow__arrow::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 5px;
+		left: calc(var(--flow-spine-x) - 0.5px);
+		border-left: 1px solid var(--border);
+	}
+
+	.flow__arrow::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: calc(var(--flow-spine-x) - 4px);
+		border-inline: 4px solid transparent;
+		border-top: 5px solid var(--border);
+	}
+
+	/* Wide: main line on the left, asides in a column to its right. Asides
+	   span both grid rows; any extra height they need goes to the 1fr arrow
+	   row, so the arrow stretches down to the next step. */
+	@container (min-width: 34rem) {
+		.flow__row {
+			grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+			grid-template-rows: auto 1fr;
+			column-gap: var(--flow-gap);
+		}
+
+		.flow__block:not(.flow__block--aside) {
+			grid-column: 1;
+			grid-row: 1;
+		}
+
+		.flow__asides {
+			grid-column: 2;
+			grid-row: 1 / span 2;
+			align-self: start;
+			margin: 0;
+			padding: 0;
+			border: 0;
+		}
+
+		.flow__asides li {
+			position: relative;
+		}
+
+		.flow__asides li::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			right: 100%;
+			width: var(--flow-gap);
+			border-top: 1px dashed var(--border);
+		}
+
+		.flow__arrow {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		/* A row with asides and no arrow (the last step) still needs room
+		   for them below its block. */
+		.flow__row:last-child {
+			margin-bottom: 0.25rem;
+		}
+	}
+</style>
