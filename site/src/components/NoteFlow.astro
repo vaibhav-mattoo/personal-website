@@ -1,6 +1,6 @@
 ---
 import katex from 'katex';
-import { headingForTerm, type FlowHeading, type FlowStep } from '../lib/noteFlow';
+import { flowRows, headingForTerm, type FlowHeading, type FlowStep } from '../lib/noteFlow';
 
 interface Props {
 	steps: FlowStep[];
@@ -25,91 +25,129 @@ function withMath(s: string): string {
 		.join('');
 }
 
-const items = steps.map((step) => ({
-	term: withMath(step.term),
-	text: withMath(step.text),
-	href: (() => {
-		const heading = headingForTerm(step.term, headings);
-		return heading ? `#${heading.slug}` : undefined;
-	})(),
-}));
+function block(step: FlowStep) {
+	const heading = headingForTerm(step.at ?? step.term, headings);
+	return {
+		term: withMath(step.term),
+		text: withMath(step.text),
+		href: heading ? `#${heading.slug}` : undefined,
+	};
+}
+
+const rows = flowRows(steps).map((row) => ({ main: block(row.step), asides: row.asides.map(block) }));
 ---
 
 {
-	items.length > 0 && (
-		<nav class="flow" aria-labelledby="flow-title">
-			<p class="flow__title" id="flow-title">
+	rows.length > 0 && (
+		<figure class="flow" aria-labelledby="flow-title">
+			<figcaption class="flow__title" id="flow-title">
 				What this note builds
-			</p>
-			<ol class="flow__steps">
-				{items.map((item) => {
-					const body = (
-						<>
-							<span class="flow__term" set:html={item.term} />
-							{item.text && <span class="flow__text" set:html={item.text} />}
-						</>
+			</figcaption>
+			<ol class="flow__rows">
+				{rows.map((row, i) => {
+					const Main = row.main.href ? 'a' : 'div';
+					return (
+						<li class="flow__row">
+							<Main class="flow__block" href={row.main.href}>
+								<span class="flow__index">{String(i + 1).padStart(2, '0')}</span>
+								<span class="flow__body">
+									<span class="flow__term" set:html={row.main.term} />
+									{row.main.text && <span class="flow__text" set:html={row.main.text} />}
+								</span>
+							</Main>
+							{row.asides.length > 0 && (
+								<ul class="flow__asides" aria-label="Asides">
+									{row.asides.map((aside) => {
+										const Aside = aside.href ? 'a' : 'div';
+										return (
+											<li>
+												<Aside class="flow__block flow__block--aside" href={aside.href}>
+													<span class="flow__body">
+														<span class="flow__term" set:html={aside.term} />
+														{aside.text && <span class="flow__text" set:html={aside.text} />}
+													</span>
+												</Aside>
+											</li>
+										);
+									})}
+								</ul>
+							)}
+							{i < rows.length - 1 && <span class="flow__arrow" aria-hidden="true" />}
+						</li>
 					);
-					return <li>{item.href ? <a href={item.href}>{body}</a> : <span class="flow__row">{body}</span>}</li>;
 				})}
 			</ol>
-		</nav>
+		</figure>
 	)
 }
 
 <style>
+	/* The main line runs down the left of the blocks, through each block's
+	   step number; asides branch off to the right (or, in a narrow column,
+	   hang below their step on a dashed continuation of the line). */
 	.flow {
+		--flow-pad-x: 0.8rem;
+		--flow-index-w: 1.25rem;
+		--flow-spine-x: calc(var(--flow-pad-x) + var(--flow-index-w) / 2);
+		--flow-gap: 2rem;
 		margin: 0 0 1rem;
+		container-type: inline-size;
 	}
 
 	.flow__title {
-		margin: 0 0 0.5rem;
+		margin: 0 0 0.6rem;
 		font-family: var(--font-display);
 		font-size: var(--text-sm);
 		color: var(--muted);
 	}
 
-	/* A vertical rail: one dot per step, joined by a line. */
-	.flow__steps {
-		position: relative;
+	.flow__rows,
+	.flow__asides {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 
-	.flow__steps li {
-		position: relative;
-		padding-left: 1.25rem;
-	}
-
-	.flow__steps li::before {
-		content: '';
-		position: absolute;
-		left: 0.2rem;
-		/* Midline of the first text line: row padding + half its line height. */
-		top: calc(0.2rem + 0.75em);
-		width: 0.45rem;
-		height: 0.45rem;
-		border-radius: 50%;
-		background: var(--accent);
-		transform: translateY(-50%);
-	}
-
-	.flow__steps li:not(:last-child)::after {
-		content: '';
-		position: absolute;
-		left: calc(0.425rem - 0.5px);
-		top: calc(0.2rem + 0.75em + 0.35rem);
-		bottom: calc(0.15rem - 0.75em);
-		border-left: 1px solid var(--border);
-	}
-
-	.flow__steps a,
 	.flow__row {
-		display: block;
-		padding: 0.2rem 0;
-		line-height: 1.5;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.flow__block {
+		display: flex;
+		gap: 0.6rem;
+		align-items: baseline;
+		padding: 0.5rem var(--flow-pad-x);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface);
 		color: var(--fg);
+		line-height: 1.45;
 		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	a.flow__block:hover {
+		border-color: var(--accent);
+	}
+
+	a.flow__block:hover .flow__term {
+		color: var(--accent);
+	}
+
+	.flow__index {
+		flex: none;
+		width: var(--flow-index-w);
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		color: var(--accent);
+		text-align: center;
+	}
+
+	.flow__body {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 	}
 
 	.flow__term {
@@ -117,14 +155,98 @@ const items = steps.map((step) => ({
 	}
 
 	.flow__text {
+		font-size: var(--text-sm);
 		color: var(--muted);
 	}
 
-	.flow__text::before {
-		content: ' — ';
+	.flow__block--aside {
+		border-style: dashed;
+		background: transparent;
 	}
 
-	.flow__steps a:hover .flow__term {
-		color: var(--accent);
+	.flow__block--aside .flow__term {
+		font-weight: 500;
+	}
+
+	/* Narrow: asides hang under their step, joined to it by a dashed stretch
+	   of the main line. */
+	.flow__asides {
+		display: grid;
+		gap: 0.4rem;
+		margin-left: var(--flow-spine-x);
+		padding: 0.4rem 0 0 0.9rem;
+		border-left: 1px dashed var(--border);
+	}
+
+	.flow__arrow {
+		position: relative;
+		min-height: 1.1rem;
+	}
+
+	.flow__arrow::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 5px;
+		left: calc(var(--flow-spine-x) - 0.5px);
+		border-left: 1px solid var(--border);
+	}
+
+	.flow__arrow::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: calc(var(--flow-spine-x) - 4px);
+		border-inline: 4px solid transparent;
+		border-top: 5px solid var(--border);
+	}
+
+	/* Wide: main line on the left, asides in a column to its right. Asides
+	   span both grid rows; any extra height they need goes to the 1fr arrow
+	   row, so the arrow stretches down to the next step. */
+	@container (min-width: 34rem) {
+		.flow__row {
+			grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+			grid-template-rows: auto 1fr;
+			column-gap: var(--flow-gap);
+		}
+
+		.flow__block:not(.flow__block--aside) {
+			grid-column: 1;
+			grid-row: 1;
+		}
+
+		.flow__asides {
+			grid-column: 2;
+			grid-row: 1 / span 2;
+			align-self: start;
+			margin: 0;
+			padding: 0;
+			border: 0;
+		}
+
+		.flow__asides li {
+			position: relative;
+		}
+
+		.flow__asides li::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			right: 100%;
+			width: var(--flow-gap);
+			border-top: 1px dashed var(--border);
+		}
+
+		.flow__arrow {
+			grid-column: 1;
+			grid-row: 2;
+		}
+
+		/* A row with asides and no arrow (the last step) still needs room
+		   for them below its block. */
+		.flow__row:last-child {
+			margin-bottom: 0.25rem;
+		}
 	}
 </style>

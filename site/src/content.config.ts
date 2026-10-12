@@ -71,18 +71,28 @@ const notes = defineCollection({
 			// document page lists them in this order, and each listed note gets
 			// "Part n of N" prev/next navigation back to the document.
 			sequence: z.array(z.string()).default([]),
-			// What the note builds up, step by step — shown under the title in
-			// place of `summary`. Each step is `- Term: what it adds` (or just
-			// `- Term`); a step links to the first heading starting with its
-			// term. `$…$` in either part renders as math.
+			// What the note builds up, drawn as a small block graph under the
+			// title in place of `summary`. Each step is `- Term: what it adds`
+			// (or just `- Term`) and links to the first heading starting with
+			// its term, or the one starting with `at: Heading text` when that's
+			// a different section; `$…$` renders as math. A step with `aside: true` is a
+			// side branch off the main step above it (or the one named by
+			// `of: Term`) instead of the next block on the main line.
 			flow: z
-				.array(z.union([z.string(), z.record(z.string(), z.string().nullable())]))
+				.array(z.union([z.string(), z.record(z.string(), z.union([z.string(), z.boolean(), z.null()]))]))
 				.default([])
 				.transform((steps) =>
 					steps.map((step) => {
 						if (typeof step === 'string') return { term: step, text: '' };
-						const [[term, text]] = Object.entries(step);
-						return { term, text: text ?? '' };
+						const { aside, of, at, ...rest } = step;
+						const [[term, text] = ['', '']] = Object.entries(rest);
+						return {
+							term,
+							text: typeof text === 'string' ? text : '',
+							aside: aside === true,
+							of: typeof of === 'string' ? of : undefined,
+							at: typeof at === 'string' ? at : undefined,
+						};
 					}),
 				),
 			suggestedBy: z.string().optional(),
